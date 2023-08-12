@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use wgpu::util::DeviceExt;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -42,6 +43,35 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
     });
 
+    // buf in
+    let vertex_data: [f32; 24] = [
+        0.0, 0.6, 0., 1., 1., 0., 0., 1., -0.5, -0.6, 0., 1., 0., 1., 0., 1., 0.5, -0.6, 0., 1.,
+        0., 0., 1., 1.,
+    ];
+
+    let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Vertex Buffer"),
+        contents: bytemuck::cast_slice(&vertex_data),
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+    });
+
+    let vertex_buffers = [wgpu::VertexBufferLayout {
+        array_stride: 32 as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Vertex,
+        attributes: &[
+            wgpu::VertexAttribute {
+                format: wgpu::VertexFormat::Float32x4,
+                offset: 0,
+                shader_location: 0,
+            },
+            wgpu::VertexAttribute {
+                format: wgpu::VertexFormat::Float32x4,
+                offset: 4 * 4,
+                shader_location: 1,
+            },
+        ],
+    }];
+
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[],
@@ -56,12 +86,12 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
-            entry_point: "vs_main",
-            buffers: &[],
+            entry_point: "vertex_main",
+            buffers: &vertex_buffers,
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: "fs_main",
+            entry_point: "fragment_main",
             targets: &[Some(swapchain_format.into())],
         }),
         primitive: wgpu::PrimitiveState::default(),
@@ -117,7 +147,12 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                             view: &view,
                             resolve_target: None,
                             ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                                load: wgpu::LoadOp::Clear(wgpu::Color {
+                                    r: 0.0,
+                                    g: 0.2,
+                                    b: 1.0,
+                                    a: 1.0,
+                                }),
                                 store: true,
                             },
                         })],
@@ -126,6 +161,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                         occlusion_query_set: None,
                     });
                     rpass.set_pipeline(&render_pipeline);
+                    rpass.set_vertex_buffer(0, vertex_buf.slice(..));
                     rpass.draw(0..3, 0..1);
                 }
 
