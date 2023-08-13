@@ -3140,11 +3140,11 @@ impl Drop for TextureView {
 impl CommandEncoder {
     /// Finishes recording and returns a [`CommandBuffer`] that can be submitted for execution.
     pub fn finish(mut self) -> CommandBuffer {
-        let (id, data) = DynContext::command_encoder_finish(
-            &*self.context,
-            self.id.take().unwrap(),
-            self.data.as_mut(),
-        );
+        log::info!("CE finale");
+        let encoder = self.id.take().unwrap();
+        let encoder_data = self.data.as_mut();
+        log::info!("args extracted");
+        let (id, data) = DynContext::command_encoder_finish(&*self.context, encoder, encoder_data);
         CommandBuffer {
             context: Arc::clone(&self.context),
             id: Some(id),

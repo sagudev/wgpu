@@ -1,3 +1,4 @@
+use log::{error, info};
 use std::{borrow::Cow, str::FromStr};
 use wgpu::util::DeviceExt;
 
@@ -5,6 +6,7 @@ use wgpu::util::DeviceExt;
 const OVERFLOW: u32 = 0xffffffff;
 
 async fn run() {
+    info!("run");
     let numbers = if std::env::args().len() <= 1 {
         let default = vec![1, 2, 3, 4];
         println!("No numbers were provided, defaulting to {default:?}");
@@ -144,22 +146,30 @@ async fn execute_gpu_inner(
     // Will copy data from storage buffer on GPU to staging buffer on CPU.
     encoder.copy_buffer_to_buffer(&storage_buffer, 0, &staging_buffer, 0, size);
 
-    // Submits command encoder for processing
-    queue.submit(Some(encoder.finish()));
+    info!("enc finish");
+    let cmd_buf = encoder.finish();
 
+    info!("submit");
+    // Submits command encoder for processing
+    queue.submit(Some(cmd_buf));
+
+    info!("buffer magic");
     // Note that we're not calling `.await` here.
     let buffer_slice = staging_buffer.slice(..);
     // Sets the buffer up for mapping, sending over the result of the mapping back to us when it is finished.
     let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
     buffer_slice.map_async(wgpu::MapMode::Read, move |v| sender.send(v).unwrap());
 
+    info!("device poll");
     // Poll the device in a blocking manner so that our future resolves.
     // In an actual application, `device.poll(...)` should
     // be called in an event loop or on another thread.
     device.poll(wgpu::Maintain::Wait);
+    info!("device polled");
 
     // Awaits until `buffer_future` can be read from
-    if let Some(Ok(())) = receiver.receive().await {
+    let res = if let Some(Ok(())) = receiver.receive().await {
+        info!("got data");
         // Gets contents of buffer
         let data = buffer_slice.get_mapped_range();
         // Since contents are got in bytes, this converts these bytes back to u32
@@ -177,22 +187,28 @@ async fn execute_gpu_inner(
         // Returns data from buffer
         Some(result)
     } else {
+        info!("panic");
         panic!("failed to run compute on gpu!")
-    }
+    };
+    info!("ended");
+    res
 }
 
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
         env_logger::init();
+        info!("spawn");
         pollster::block_on(run());
     }
     #[cfg(target_arch = "wasm32")]
     {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
         console_log::init().expect("could not initialize logger");
+        info!("spawn");
         wasm_bindgen_futures::spawn_local(run());
     }
+    info!("m_ended");
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]

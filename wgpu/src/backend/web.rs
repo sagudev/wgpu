@@ -2265,12 +2265,16 @@ impl crate::context::Context for Context {
         _encoder: Self::CommandEncoderId,
         encoder_data: &mut Self::CommandEncoderData,
     ) -> (Self::CommandBufferId, Self::CommandBufferData) {
+        log::info!("web command_encoder_finish");
         let label = encoder_data.0.label();
+        log::info!("got label");
         create_identified(if label.is_empty() {
+            log::info!("encoder_data.0.finish()");
             encoder_data.0.finish()
         } else {
             let mut mapped_desc = web_sys::GpuCommandBufferDescriptor::new();
             mapped_desc.label(&label);
+            log::info!("encoder_data.0.finish_with_descriptor(&mapped_desc)");
             encoder_data.0.finish_with_descriptor(&mapped_desc)
         })
     }
