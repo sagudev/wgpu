@@ -11,6 +11,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
     let instance = wgpu::Instance::default();
 
+    log::info!("Capa");
     let surface = unsafe { instance.create_surface(&window) }.unwrap();
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
@@ -21,6 +22,9 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         })
         .await
         .expect("Failed to find an appropriate adapter");
+    log::info!("Capa2");
+    let limits = adapter.limits();
+    log::info!("got limits");
 
     // Create the logical device and command queue
     let (device, queue) = adapter
@@ -37,6 +41,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         .await
         .expect("Failed to create device");
 
+    log::info!("Capa3");
     // Load the shaders from disk
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: None,
@@ -78,8 +83,10 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         push_constant_ranges: &[],
     });
 
+    log::info!("Cap");
     let swapchain_capabilities = surface.get_capabilities(&adapter);
     let swapchain_format = swapchain_capabilities.formats[0];
+    log::info!("cap end");
 
     let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: None,
