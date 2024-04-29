@@ -3158,15 +3158,6 @@ class GPUCommandEncoder {
         prefix,
         "texture view for depth stencil attachment",
       );
-      assertDeviceMatch(
-        device,
-        descriptor.depthStencilAttachment.view[_texture],
-        {
-          prefix,
-          resourceContext: "texture view for depth stencil attachment",
-          selfContext: "this",
-        },
-      );
 
       depthStencilAttachment = {
         ...descriptor.depthStencilAttachment,
