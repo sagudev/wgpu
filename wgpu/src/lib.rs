@@ -19,7 +19,8 @@
 #![warn(missing_docs, rust_2018_idioms, unsafe_op_in_unsafe_fn)]
 
 mod backend;
-mod context;
+#[doc(hidden)]
+pub mod context;
 pub mod util;
 #[macro_use]
 mod macros;
