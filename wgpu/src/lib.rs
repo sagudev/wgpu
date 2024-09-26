@@ -26,7 +26,8 @@
 
 mod api;
 mod backend;
-mod context;
+#[doc(hidden)]
+pub mod context;
 mod macros;
 mod send_sync;
 pub mod util;
