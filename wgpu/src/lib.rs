@@ -3368,6 +3368,15 @@ impl Drop for Device {
 pub struct RequestDeviceError {
     inner: RequestDeviceErrorKind,
 }
+
+impl Default for RequestDeviceError {
+    fn default() -> Self {
+        Self {
+            inner: RequestDeviceErrorKind::Unknown,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 enum RequestDeviceErrorKind {
     /// Error from [`wgpu_core`].
@@ -3380,6 +3389,9 @@ enum RequestDeviceErrorKind {
     /// (This is currently never used by the webgl backend, but it could be.)
     #[cfg(webgpu)]
     WebGpu(wasm_bindgen::JsValue),
+
+    /// Unknown error from unknown context
+    Unknown,
 }
 
 #[cfg(send_sync)]
@@ -3400,8 +3412,7 @@ impl fmt::Display for RequestDeviceError {
                 // wasm-bindgen provides a reasonable error stringification via `Debug` impl
                 write!(_f, "{error_js_value:?}")
             }
-            #[cfg(not(any(webgpu, wgpu_core)))]
-            _ => unimplemented!("unknown `RequestDeviceErrorKind`"),
+            RequestDeviceErrorKind::Unknown => write!(_f, "unknown"),
         }
     }
 }
@@ -3413,8 +3424,7 @@ impl error::Error for RequestDeviceError {
             RequestDeviceErrorKind::Core(error) => error.source(),
             #[cfg(webgpu)]
             RequestDeviceErrorKind::WebGpu(_) => None,
-            #[cfg(not(any(webgpu, wgpu_core)))]
-            _ => unimplemented!("unknown `RequestDeviceErrorKind`"),
+            RequestDeviceErrorKind::Unknown => None,
         }
     }
 }
