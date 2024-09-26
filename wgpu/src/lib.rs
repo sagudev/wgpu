@@ -2364,8 +2364,15 @@ impl Instance {
         }
 
         unreachable!(
-            "Earlier check of `enabled_backend_features` should have prevented getting here!"
+            "Earlier check of `enabled_backend_features` should have prevented getting here! \n{}",
+            "If you have custom context implementation you should pass it via `Instance::from_any`"
         );
+    }
+
+    #[doc(hidden)]
+    /// Creates Instance from custom context implementation
+    pub fn from_any(context: Arc<dyn DynContext>) -> Self {
+        Self { context }
     }
 
     /// Create an new instance of wgpu from a wgpu-hal instance.

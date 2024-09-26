@@ -1162,7 +1162,7 @@ pub type DeviceLostCallback = Box<dyn Fn(DeviceLostReason, String) + Send + 'sta
 pub type DeviceLostCallback = Box<dyn Fn(DeviceLostReason, String) + 'static>;
 
 /// An object safe variant of [`Context`] implemented by all types that implement [`Context`].
-pub(crate) trait DynContext: Debug + WasmNotSendSync {
+pub trait DynContext: Debug + WasmNotSendSync {
     fn as_any(&self) -> &dyn Any;
 
     unsafe fn instance_create_surface(
