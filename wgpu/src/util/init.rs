@@ -38,7 +38,7 @@ pub fn power_preference_from_env() -> Option<PowerPreference> {
 }
 
 /// Initialize the adapter obeying the WGPU_ADAPTER_NAME environment variable.
-#[cfg(native)]
+#[cfg(all(wgpu_core, native))]
 pub fn initialize_adapter_from_env(
     instance: &Instance,
     compatible_surface: Option<&Surface<'_>>,
@@ -70,7 +70,7 @@ pub fn initialize_adapter_from_env(
 }
 
 /// Initialize the adapter obeying the WGPU_ADAPTER_NAME environment variable.
-#[cfg(not(native))]
+#[cfg(not(all(native, wgpu_core)))]
 pub fn initialize_adapter_from_env(
     _instance: &Instance,
     _compatible_surface: Option<&Surface<'_>>,

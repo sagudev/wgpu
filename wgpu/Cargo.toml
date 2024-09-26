@@ -29,7 +29,7 @@ ignored = ["cfg_aliases"]
 [lib]
 
 [features]
-default = ["wgsl", "dx12", "metal", "webgpu"]
+default = ["wgsl", "dx12", "metal", "webgpu", "core"]
 
 #! ### Backends
 # --------------------------------------------------------------------
@@ -45,6 +45,12 @@ metal = ["wgc?/metal"]
 
 ## Enables the WebGPU backend on Wasm. Disabled when targeting `emscripten`.
 webgpu = ["naga?/wgsl-out"]
+
+## Enables wgpu-core if platform supports it
+##
+## This exist so we can allow users to bring their own contexts
+## and not need to get wgpu-core
+core = ["dep:wgc", "dep:hal"]
 
 ## Enables the GLES backend via [ANGLE](https://github.com/google/angle) on macOS using.
 angle = ["wgc?/gles"]
@@ -117,37 +123,35 @@ fragile-send-sync-non-atomic-wasm = [
     "wgt/fragile-send-sync-non-atomic-wasm",
 ]
 
-# wgpu-core is always available as an optional dependency, "wgc".
-# Whenever wgpu-core is selected, we want raw window handle support.
-[dependencies.wgc]
-optional = true
-workspace = true
-features = ["raw-window-handle"]
-
 # wgpu-core is required whenever not targeting web APIs directly.
 # Whenever wgpu-core is selected, we want raw window handle support.
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies.wgc]
 workspace = true
+optional = true
 features = ["raw-window-handle"]
 
 # Enable `wgc` by default on macOS and iOS to allow the `metal` crate feature to
 # enable the Metal backend while being no-op on other targets.
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies.wgc]
 workspace = true
+optional = true
 
 # We want the wgpu-core Direct3D backend and OpenGL (via WGL) on Windows.
 [target.'cfg(windows)'.dependencies.wgc]
 workspace = true
+optional = true
 features = ["gles"]
 
 # We want the wgpu-core Vulkan backend on Unix (but not emscripten, macOS, iOS) and Windows.
 [target.'cfg(any(windows, all(unix, not(target_os = "emscripten"), not(target_os = "ios"), not(target_os = "macos"))))'.dependencies.wgc]
 workspace = true
+optional = true
 features = ["vulkan"]
 
 # We want the wgpu-core GLES backend on Unix (but not macOS, iOS).
 [target.'cfg(all(unix, not(target_os = "ios"), not(target_os = "macos")))'.dependencies.wgc]
 workspace = true
+optional = true
 features = ["gles"]
 
 [dependencies.wgt]
@@ -155,21 +159,17 @@ workspace = true
 
 # We need wgpu-hal unless we're targeting the web APIs.
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
-hal = { workspace = true }
+hal = { workspace = true, optional = true }
 
 [target.'cfg(all(not(target_arch = "wasm32"), unix, not(target_os = "ios"), not(target_os = "macos")))'.dependencies]
-hal = { workspace = true, features = ["renderdoc"] }
+hal = { workspace = true, features = ["renderdoc"], optional = true }
 
 [target.'cfg(windows)'.dependencies]
 hal = { workspace = true, features = [
     "dxc_shader_compiler",
     "renderdoc",
     "windows_rs",
-] }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies.hal]
-workspace = true
-optional = true
+], optional = true }
 
 [dependencies]
 arrayvec.workspace = true
