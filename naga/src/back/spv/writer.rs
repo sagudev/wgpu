@@ -146,7 +146,7 @@ impl Writer {
         container_id: Word,
         container_ty: Handle<crate::Type>,
         index_id: Word,
-        element_ty: Handle<crate::Type>,
+        element_ty: LookupType,
         block: &mut Block,
     ) -> Result<(Word, LocalVariable), Error> {
         let pointer_type_id =
@@ -170,7 +170,7 @@ impl Writer {
 
         let element_pointer_id = self.id_gen.next();
         let element_pointer_type_id =
-            self.get_pointer_id(ir_types, element_ty, spirv::StorageClass::Function)?;
+            self.get_pointer_id2(ir_types, element_ty, spirv::StorageClass::Function)?;
         block.body.push(Instruction::access_chain(
             element_pointer_type_id,
             element_pointer_id,
@@ -286,6 +286,44 @@ impl Writer {
             self.lookup_type.insert(lookup_type, id);
             id
         })
+    }
+
+    pub(super) fn get_pointer_id2(
+        &mut self,
+        arena: &UniqueArena<crate::Type>,
+        ty: LookupType,
+        class: spirv::StorageClass,
+    ) -> Result<Word, Error> {
+        let ty_id = self.get_type_id(ty);
+        if let LookupType::Handle(handle) = ty {
+            if let crate::TypeInner::Pointer { .. } = arena[handle].inner {
+                return Ok(ty_id);
+            }
+            let lookup_type = LookupType::Local(LocalType::Pointer {
+                base: handle,
+                class,
+            });
+            Ok(if let Some(&id) = self.lookup_type.get(&lookup_type) {
+                id
+            } else {
+                let id = self.id_gen.next();
+                let instruction = Instruction::type_pointer(id, class, ty_id);
+                instruction.to_words(&mut self.logical_layout.declarations);
+                self.lookup_type.insert(lookup_type, id);
+                id
+            })
+        } else {
+            Ok(if let Some(&id) = self.lookup_type.get(&ty) {
+                id
+            } else {
+                let id = self.id_gen.next();
+                let ty_id = self.get_type_id(ty);
+                let instruction = Instruction::type_pointer(id, class, ty_id);
+                instruction.to_words(&mut self.logical_layout.declarations);
+                self.lookup_type.insert(ty, id);
+                id
+            })
+        }
     }
 
     pub(super) fn get_uint_type_id(&mut self) -> Word {

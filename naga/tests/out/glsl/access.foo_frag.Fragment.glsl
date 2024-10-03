@@ -53,6 +53,10 @@ int array_by_value(int a_1[5], int i) {
     return a_1[i];
 }
 
+vec4 matrix_by_value(mat4x4 m, int i_1) {
+    return m[i_1];
+}
+
 void main() {
     _group_0_binding_0_fs._matrix[1][2] = 1.0;
     _group_0_binding_0_fs._matrix = mat4x3(vec3(0.0), vec3(1.0), vec3(2.0), vec3(3.0));

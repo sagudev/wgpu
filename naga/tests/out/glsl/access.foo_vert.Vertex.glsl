@@ -126,6 +126,10 @@ int array_by_value(int a_1[5], int i) {
     return a_1[i];
 }
 
+vec4 matrix_by_value(mat4x4 m, int i_1) {
+    return m[i_1];
+}
+
 void main() {
     uint vi = uint(gl_VertexID);
     float foo = 0.0;

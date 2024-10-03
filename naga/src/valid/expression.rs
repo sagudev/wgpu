@@ -240,8 +240,8 @@ impl super::Validator {
                 let base_type = &resolver[base];
                 // See the documentation for `Expression::Access`.
                 let dynamic_indexing_restricted = match *base_type {
-                    Ti::Matrix { .. } => true,
-                    Ti::Vector { .. }
+                    Ti::Matrix { .. }
+                    | Ti::Vector { .. }
                     | Ti::Array { .. }
                     | Ti::Pointer { .. }
                     | Ti::ValuePointer { size: Some(_), .. }

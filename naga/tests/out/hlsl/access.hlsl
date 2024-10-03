@@ -235,6 +235,11 @@ int array_by_value(int a_1[5], int i)
     return a_1[i];
 }
 
+float4 matrix_by_value(float4x4 m, int i_1)
+{
+    return m[i_1];
+}
+
 typedef int ret_Constructarray5_int_[5];
 ret_Constructarray5_int_ Constructarray5_int_(int arg0, int arg1, int arg2, int arg3, int arg4) {
     int ret[5] = { arg0, arg1, arg2, arg3, arg4 };
