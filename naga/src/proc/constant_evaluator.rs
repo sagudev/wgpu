@@ -254,9 +254,7 @@ gen_component_wise_extractor! {
     ],
 }
 
-/// Vector for each [`Literal`] type
-///
-/// This type ensures that all elements have same type
+/// Vectors with a concrete element type.
 #[derive(Debug)]
 enum LiteralVector {
     F64(ArrayVec<f64, { crate::VectorSize::MAX }>),
@@ -271,20 +269,20 @@ enum LiteralVector {
 }
 
 impl LiteralVector {
-    #[allow(clippy::pattern_type_mismatch, clippy::missing_const_for_fn)]
-    fn len(&self) -> usize {
-        match self {
-            LiteralVector::F64(v) => v.len(),
-            LiteralVector::F32(v) => v.len(),
-            LiteralVector::U32(v) => v.len(),
-            LiteralVector::I32(v) => v.len(),
-            LiteralVector::U64(v) => v.len(),
-            LiteralVector::I64(v) => v.len(),
-            LiteralVector::Bool(v) => v.len(),
-            LiteralVector::AbstractInt(v) => v.len(),
-            LiteralVector::AbstractFloat(v) => v.len(),
+    const fn len(&self) -> usize {
+        match *self {
+            LiteralVector::F64(ref v) => v.len(),
+            LiteralVector::F32(ref v) => v.len(),
+            LiteralVector::U32(ref v) => v.len(),
+            LiteralVector::I32(ref v) => v.len(),
+            LiteralVector::U64(ref v) => v.len(),
+            LiteralVector::I64(ref v) => v.len(),
+            LiteralVector::Bool(ref v) => v.len(),
+            LiteralVector::AbstractInt(ref v) => v.len(),
+            LiteralVector::AbstractFloat(ref v) => v.len(),
         }
     }
+
     /// Creates [`LiteralVector`] of size 1 from single [`Literal`]
     fn from_literal(literal: Literal) -> Self {
         match literal {
@@ -300,19 +298,7 @@ impl LiteralVector {
         }
     }
 
-    #[allow(dead_code)]
-    /// Creates [`LiteralVector`] from Array of [`Literal`]s
-    ///
-    /// Panics if vector is empty
-    fn from_literal_vec(
-        components: ArrayVec<Literal, { crate::VectorSize::MAX }>,
-    ) -> Result<Self, ConstantEvaluatorError> {
-        let scalar = components[0].scalar();
-        Self::from_literal_vec_with_scalar_type(components, scalar)
-    }
-
-    /// Creates [`LiteralVector`] of type provided by scalar from Array of [`Literal`]s
-    ///
+    /// # Panics
     /// Panics if vector is empty, returns error if types do not match
     fn from_literal_vec_with_scalar_type(
         components: ArrayVec<Literal, { crate::VectorSize::MAX }>,
@@ -444,17 +430,18 @@ impl LiteralVector {
 
     /// Returns [`ArrayVec`] of [`Literal`]s
     fn to_literal_vec(&self) -> ArrayVec<Literal, { crate::VectorSize::MAX }> {
-        #[allow(clippy::pattern_type_mismatch)]
-        match self {
-            LiteralVector::F64(v) => v.iter().map(|e| (Literal::F64(*e))).collect(),
-            LiteralVector::F32(v) => v.iter().map(|e| (Literal::F32(*e))).collect(),
-            LiteralVector::U32(v) => v.iter().map(|e| (Literal::U32(*e))).collect(),
-            LiteralVector::I32(v) => v.iter().map(|e| (Literal::I32(*e))).collect(),
-            LiteralVector::U64(v) => v.iter().map(|e| (Literal::U64(*e))).collect(),
-            LiteralVector::I64(v) => v.iter().map(|e| (Literal::I64(*e))).collect(),
-            LiteralVector::Bool(v) => v.iter().map(|e| (Literal::Bool(*e))).collect(),
-            LiteralVector::AbstractInt(v) => v.iter().map(|e| (Literal::AbstractInt(*e))).collect(),
-            LiteralVector::AbstractFloat(v) => {
+        match *self {
+            LiteralVector::F64(ref v) => v.iter().map(|e| (Literal::F64(*e))).collect(),
+            LiteralVector::F32(ref v) => v.iter().map(|e| (Literal::F32(*e))).collect(),
+            LiteralVector::U32(ref v) => v.iter().map(|e| (Literal::U32(*e))).collect(),
+            LiteralVector::I32(ref v) => v.iter().map(|e| (Literal::I32(*e))).collect(),
+            LiteralVector::U64(ref v) => v.iter().map(|e| (Literal::U64(*e))).collect(),
+            LiteralVector::I64(ref v) => v.iter().map(|e| (Literal::I64(*e))).collect(),
+            LiteralVector::Bool(ref v) => v.iter().map(|e| (Literal::Bool(*e))).collect(),
+            LiteralVector::AbstractInt(ref v) => {
+                v.iter().map(|e| (Literal::AbstractInt(*e))).collect()
+            }
+            LiteralVector::AbstractFloat(ref v) => {
                 v.iter().map(|e| (Literal::AbstractFloat(*e))).collect()
             }
         }
