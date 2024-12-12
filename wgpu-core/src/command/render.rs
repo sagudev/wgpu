@@ -102,15 +102,15 @@ impl StoreOp {
 #[repr(C)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct PassChannel<V> {
+pub struct PassChannel<V, L = Option<LoadOp>, S = Option<StoreOp>> {
     /// Operation to perform to the output attachment at the start of a
     /// renderpass.
     ///
     /// This must be clear if it is the first renderpass rendering to a swap
     /// chain image.
-    pub load_op: LoadOp,
+    pub load_op: L,
     /// Operation to perform to the output attachment at the end of a renderpass.
-    pub store_op: StoreOp,
+    pub store_op: S,
     /// If load_op is [`LoadOp::Clear`], the attachment will be cleared to this
     /// color.
     pub clear_value: V,
@@ -120,9 +120,38 @@ pub struct PassChannel<V> {
     pub read_only: bool,
 }
 
-impl<V> PassChannel<V> {
+impl<V> PassChannel<V, LoadOp, StoreOp> {
     fn hal_ops(&self) -> hal::AttachmentOps {
         self.load_op.hal_ops() | self.store_op.hal_ops()
+    }
+}
+
+impl<V: Copy> PassChannel<V, Option<LoadOp>, Option<StoreOp>> {
+    fn resolve(&self) -> Result<PassChannel<V, LoadOp, StoreOp>, AttachmentError> {
+        let load_op = if self.read_only {
+            if self.load_op.is_some() {
+                return Err(AttachmentError::ReadOnlyWithLoad);
+            } else {
+                LoadOp::Load
+            }
+        } else {
+            self.load_op.ok_or(AttachmentError::NoLoad)?
+        };
+        let store_op = if self.read_only {
+            if self.store_op.is_some() {
+                return Err(AttachmentError::ReadOnlyWithStore);
+            } else {
+                StoreOp::Store
+            }
+        } else {
+            self.store_op.ok_or(AttachmentError::NoStore)?
+        };
+        Ok(PassChannel {
+            load_op,
+            store_op,
+            clear_value: self.clear_value,
+            read_only: self.read_only,
+        })
     }
 }
 
@@ -176,9 +205,9 @@ pub struct RenderPassDepthStencilAttachment {
     /// The view to use as an attachment.
     pub view: id::TextureViewId,
     /// What operations will be performed on the depth part of the attachment.
-    pub depth: PassChannel<f32>,
+    pub depth: PassChannel<f32, Option<LoadOp>, Option<StoreOp>>,
     /// What operations will be performed on the stencil part of the attachment.
-    pub stencil: PassChannel<u32>,
+    pub stencil: PassChannel<u32, Option<LoadOp>, Option<StoreOp>>,
 }
 /// Describes a depth/stencil attachment to a render pass.
 #[derive(Debug)]
@@ -186,9 +215,9 @@ pub struct ArcRenderPassDepthStencilAttachment {
     /// The view to use as an attachment.
     pub view: Arc<TextureView>,
     /// What operations will be performed on the depth part of the attachment.
-    pub depth: PassChannel<f32>,
+    pub depth: PassChannel<f32, LoadOp, StoreOp>,
     /// What operations will be performed on the stencil part of the attachment.
-    pub stencil: PassChannel<u32>,
+    pub stencil: PassChannel<u32, LoadOp, StoreOp>,
 }
 
 impl ArcRenderPassDepthStencilAttachment {
@@ -594,6 +623,19 @@ pub enum ColorAttachmentError {
     TooMany { given: usize, limit: usize },
     #[error("The total number of bytes per sample in color attachments {total} exceeds the limit {limit}")]
     TooManyBytesPerSample { total: u32, limit: u32 },
+}
+
+#[derive(Clone, Debug, Error)]
+#[non_exhaustive]
+pub enum AttachmentError {
+    #[error("Read-only attachment with load")]
+    ReadOnlyWithLoad,
+    #[error("Read-only attachment with store")]
+    ReadOnlyWithStore,
+    #[error("Attachment without load")]
+    NoLoad,
+    #[error("Attachment without store")]
+    NoStore,
 }
 
 /// Error encountered when performing a render pass.
@@ -1420,8 +1462,8 @@ impl Global {
 
                     Some(ArcRenderPassDepthStencilAttachment {
                         view,
-                        depth: depth_stencil_attachment.depth.clone(),
-                        stencil: depth_stencil_attachment.stencil.clone(),
+                        depth: depth_stencil_attachment.depth.resolve()?,
+                        stencil: depth_stencil_attachment.stencil.resolve()?,
                     })
                 } else {
                     None
