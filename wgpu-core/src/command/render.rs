@@ -126,6 +126,17 @@ impl<V> PassChannel<V, LoadOp, StoreOp> {
     }
 }
 
+impl<V: Default> Default for PassChannel<V, LoadOp, StoreOp> {
+    fn default() -> Self {
+        PassChannel {
+            load_op: LoadOp::Load,
+            store_op: StoreOp::Store,
+            clear_value: V::default(),
+            read_only: false,
+        }
+    }
+}
+
 impl<V: Copy> PassChannel<V, Option<LoadOp>, Option<StoreOp>> {
     fn resolve(&self) -> Result<PassChannel<V, LoadOp, StoreOp>, AttachmentError> {
         let load_op = if self.read_only {
@@ -628,6 +639,8 @@ pub enum ColorAttachmentError {
 #[derive(Clone, Debug, Error)]
 #[non_exhaustive]
 pub enum AttachmentError {
+    #[error("The format of the depth-stencil attachment ({0:?}) is not a depth-or-stencil format")]
+    InvalidDepthStencilAttachmentFormat(wgt::TextureFormat),
     #[error("Read-only attachment with load")]
     ReadOnlyWithLoad,
     #[error("Read-only attachment with store")]
@@ -649,8 +662,6 @@ pub enum RenderPassErrorInner {
     Encoder(#[from] CommandEncoderError),
     #[error("Parent encoder is invalid")]
     InvalidParentEncoder,
-    #[error("The format of the depth-stencil attachment ({0:?}) is not a depth-stencil format")]
-    InvalidDepthStencilAttachmentFormat(wgt::TextureFormat),
     #[error("The format of the {location} ({format:?}) is not resolvable")]
     UnsupportedResolveTargetFormat {
         location: AttachmentErrorLocation,
@@ -977,16 +988,10 @@ impl<'d> RenderPassInfo<'d> {
 
         if let Some(at) = depth_stencil_attachment.as_ref() {
             let view = &at.view;
-            view.same_device(device)?;
             check_multiview(view)?;
             add_view(view, AttachmentErrorLocation::Depth)?;
 
             let ds_aspects = view.desc.aspects();
-            if ds_aspects.contains(hal::FormatAspects::COLOR) {
-                return Err(RenderPassErrorInner::InvalidDepthStencilAttachmentFormat(
-                    view.desc.format,
-                ));
-            }
 
             if !ds_aspects.contains(hal::FormatAspects::STENCIL)
                 || (at.stencil.load_op == at.depth.load_op
@@ -1456,14 +1461,30 @@ impl Global {
             }
 
             arc_desc.depth_stencil_attachment =
+            // https://gpuweb.github.io/gpuweb/#abstract-opdef-gpurenderpassdepthstencilattachment-gpurenderpassdepthstencilattachment-valid-usage
                 if let Some(depth_stencil_attachment) = desc.depth_stencil_attachment {
                     let view = texture_views.get(depth_stencil_attachment.view).get()?;
                     view.same_device(device)?;
 
+                    let format = view.desc.format;
+                    if !format.is_depth_stencil_format() {
+                        return Err(CommandEncoderError::InvalidAttachment(AttachmentError::InvalidDepthStencilAttachmentFormat(
+                            view.desc.format,
+                        )));
+                    }
+
                     Some(ArcRenderPassDepthStencilAttachment {
                         view,
-                        depth: depth_stencil_attachment.depth.resolve()?,
-                        stencil: depth_stencil_attachment.stencil.resolve()?,
+                        depth: if format.has_depth_aspect() {
+                            depth_stencil_attachment.depth.resolve()?
+                        } else {
+                            Default::default()
+                        },
+                        stencil: if format.has_stencil_aspect() {
+                            depth_stencil_attachment.stencil.resolve()?
+                        } else {
+                            Default::default()
+                        },
                     })
                 } else {
                     None
