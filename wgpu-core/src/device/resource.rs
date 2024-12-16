@@ -1316,6 +1316,7 @@ impl Device {
                 texture_format: texture.desc.format,
                 format: resolved_format,
                 dimension: resolved_dimension,
+                usage: resolved_usage,
                 range: resolved_range,
             },
             format_features: texture.format_features,
@@ -2097,7 +2098,7 @@ impl Device {
     {
         view.same_device(self)?;
 
-        let (pub_usage, internal_use) = self.texture_use_parameters(
+        let internal_use = self.texture_use_parameters(
             binding,
             decl,
             view,
@@ -2107,7 +2108,6 @@ impl Device {
         used.views.insert_single(view.clone(), internal_use);
 
         let texture = &view.parent;
-        texture.check_usage(pub_usage)?;
 
         used_texture_ranges.push(TextureInitTrackerAction {
             texture: texture.clone(),
@@ -2406,7 +2406,7 @@ impl Device {
         decl: &wgt::BindGroupLayoutEntry,
         view: &TextureView,
         expected: &'static str,
-    ) -> Result<(wgt::TextureUsages, hal::TextureUses), binding_model::CreateBindGroupError> {
+    ) -> Result<hal::TextureUses, binding_model::CreateBindGroupError> {
         use crate::binding_model::CreateBindGroupError as Error;
         if view
             .desc
@@ -2465,10 +2465,8 @@ impl Device {
                         view_dimension: view.desc.dimension,
                     });
                 }
-                Ok((
-                    wgt::TextureUsages::TEXTURE_BINDING,
-                    hal::TextureUses::RESOURCE,
-                ))
+                view.check_usage(wgt::TextureUsages::TEXTURE_BINDING)?;
+                Ok(hal::TextureUses::RESOURCE)
             }
             wgt::BindingType::StorageTexture {
                 access,
@@ -2531,7 +2529,8 @@ impl Device {
                         hal::TextureUses::STORAGE_READ_WRITE
                     }
                 };
-                Ok((wgt::TextureUsages::STORAGE_BINDING, internal_use))
+                view.check_usage(wgt::TextureUsages::STORAGE_BINDING)?;
+                Ok(internal_use)
             }
             _ => Err(Error::WrongBindingType {
                 binding,
