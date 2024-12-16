@@ -404,33 +404,28 @@ fn map_store_op(op: StoreOp) -> wgc::command::StoreOp {
     }
 }
 
-fn map_load_op<V: Default>(op: LoadOp<V>) -> (wgc::command::LoadOp, V) {
+fn map_load_op<V>(op: LoadOp<V>) -> (wgc::command::LoadOp, Option<V>) {
     match op {
-        LoadOp::Clear(v) => (wgc::command::LoadOp::Clear, v),
-        LoadOp::Load => (wgc::command::LoadOp::Load, V::default()),
+        LoadOp::Clear(v) => (wgc::command::LoadOp::Clear, Some(v)),
+        LoadOp::Load => (wgc::command::LoadOp::Load, None),
     }
 }
 
-fn map_pass_channel<T, V>(ops: Option<&Operations<V>>) -> wgc::command::PassChannel<T>
-where
-    T: TryFrom<V> + Default,
-    V: Copy + Default,
-    T::Error: std::fmt::Debug,
-{
+fn map_pass_channel<V: Copy>(ops: Option<&Operations<V>>) -> wgc::command::PassChannel<Option<V>> {
     match ops {
         Some(&Operations { load, store }) => {
             let (load_op, clear_value) = map_load_op(load);
             wgc::command::PassChannel {
                 load_op: Some(load_op),
                 store_op: Some(map_store_op(store)),
-                clear_value: clear_value.try_into().unwrap(),
+                clear_value,
                 read_only: false,
             }
         }
         None => wgc::command::PassChannel {
             load_op: None,
             store_op: None,
-            clear_value: T::default(),
+            clear_value: None,
             read_only: true,
         },
     }
@@ -2257,7 +2252,7 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
                         resolve_target: at.resolve_target.map(|view| view.inner.as_core().id),
                         load_op,
                         store_op: map_store_op(at.ops.store),
-                        clear_value,
+                        clear_value: clear_value.unwrap_or_default(),
                     }
                 })
             })

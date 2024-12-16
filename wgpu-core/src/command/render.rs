@@ -137,7 +137,7 @@ impl<V: Default> Default for PassChannel<V, LoadOp, StoreOp> {
     }
 }
 
-impl<V: Copy> PassChannel<V, Option<LoadOp>, Option<StoreOp>> {
+impl<V: Copy + Default> PassChannel<Option<V>, Option<LoadOp>, Option<StoreOp>> {
     fn resolve(&self) -> Result<PassChannel<V, LoadOp, StoreOp>, AttachmentError> {
         let load_op = if self.read_only {
             if self.load_op.is_some() {
@@ -160,7 +160,7 @@ impl<V: Copy> PassChannel<V, Option<LoadOp>, Option<StoreOp>> {
         Ok(PassChannel {
             load_op,
             store_op,
-            clear_value: self.clear_value,
+            clear_value: self.clear_value.unwrap_or_default(),
             read_only: self.read_only,
         })
     }
@@ -218,7 +218,7 @@ pub struct RenderPassDepthStencilAttachment {
     /// What operations will be performed on the depth part of the attachment.
     pub depth: PassChannel<Option<f32>, Option<LoadOp>, Option<StoreOp>>,
     /// What operations will be performed on the stencil part of the attachment.
-    pub stencil: PassChannel<u32, Option<LoadOp>, Option<StoreOp>>,
+    pub stencil: PassChannel<Option<u32>, Option<LoadOp>, Option<StoreOp>>,
 }
 
 /// Describes a depth/stencil attachment to a render pass.
@@ -1489,21 +1489,10 @@ impl Global {
                         }
                     }
 
-                    let depth = {
-                        // We cannot update struct because of different generic
-                        let PassChannel { load_op, store_op, clear_value, read_only } = depth_stencil_attachment.depth;
-                        PassChannel {
-                            load_op,
-                            store_op,
-                            read_only,
-                            clear_value: clear_value.unwrap_or_default()
-                        }
-                    };
-
                     Some(ArcRenderPassDepthStencilAttachment {
                         view,
                         depth: if format.has_depth_aspect() {
-                            depth.resolve()?
+                            depth_stencil_attachment.depth.resolve()?
                         } else {
                             Default::default()
                         },

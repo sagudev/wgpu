@@ -163,7 +163,7 @@ pub fn op_webgpu_command_encoder_begin_render_pass(
                 stencil: wgpu_core::command::PassChannel {
                     load_op: attachment.stencil_load_op,
                     store_op: attachment.stencil_store_op,
-                    clear_value: attachment.stencil_clear_value,
+                    clear_value: Some(attachment.stencil_clear_value),
                     read_only: attachment.stencil_read_only,
                 },
             });
