@@ -1086,6 +1086,17 @@ impl Device {
                         .saturating_sub(desc.range.base_array_layer),
                 });
 
+        let resolved_usage = if desc.usage.is_empty() {
+            texture.desc.usage
+        } else if texture.desc.usage.contains(desc.usage) {
+            desc.usage
+        } else {
+            return Err(resource::CreateTextureViewError::InvalidTextureViewUsage {
+                view: desc.usage,
+                texture: texture.desc.usage,
+            });
+        };
+
         // validate TextureViewDescriptor
 
         let aspects = hal::FormatAspects::new(texture.desc.format, desc.range.aspect);
@@ -1207,12 +1218,8 @@ impl Device {
 
         // https://gpuweb.github.io/gpuweb/#abstract-opdef-renderable-texture-view
         let render_extent = 'error: {
-            if !texture
-                .desc
-                .usage
-                .contains(wgt::TextureUsages::RENDER_ATTACHMENT)
-            {
-                break 'error Err(TextureViewNotRenderableReason::Usage(texture.desc.usage));
+            if !resolved_usage.contains(wgt::TextureUsages::RENDER_ATTACHMENT) {
+                break 'error Err(TextureViewNotRenderableReason::Usage(resolved_usage));
             }
 
             if !(resolved_dimension == TextureViewDimension::D2
