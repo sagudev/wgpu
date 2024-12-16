@@ -1489,11 +1489,14 @@ impl Global {
                         }
                     }
 
-                    let depth = PassChannel {
-                        load_op: depth_stencil_attachment.depth.load_op,
-                        store_op: depth_stencil_attachment.depth.store_op,
-                        read_only: depth_stencil_attachment.depth.read_only,
-                        clear_value: depth_stencil_attachment.depth.clear_value.unwrap_or_default()
+                    let depth = {
+                        let PassChannel { load_op, store_op, clear_value, read_only } = depth_stencil_attachment.depth;
+                        PassChannel {
+                            load_op,
+                            store_op,
+                            read_only,
+                            clear_value: clear_value.unwrap_or_default()
+                        }
                     };
 
                     Some(ArcRenderPassDepthStencilAttachment {
