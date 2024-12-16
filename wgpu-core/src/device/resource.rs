@@ -1086,7 +1086,7 @@ impl Device {
                         .saturating_sub(desc.range.base_array_layer),
                 });
 
-        let resolved_usage = if desc.usage.is_empty() {
+        let resolved_usage = if desc.usage == wgt::TextureUsages::FROM_PARENT {
             texture.desc.usage
         } else if texture.desc.usage.contains(desc.usage) {
             desc.usage
