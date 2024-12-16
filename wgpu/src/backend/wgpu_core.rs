@@ -411,11 +411,11 @@ fn map_load_op<V: Default>(op: LoadOp<V>) -> (wgc::command::LoadOp, V) {
     }
 }
 
-fn map_pass_channel<T: TryFrom<V> + Default, V: Copy + Default>(
-    ops: Option<&Operations<V>>,
-) -> wgc::command::PassChannel<T>
+fn map_pass_channel<T, V>(ops: Option<&Operations<V>>) -> wgc::command::PassChannel<T>
 where
-    <T as std::convert::TryFrom<V>>::Error: std::fmt::Debug,
+    T: TryFrom<V> + Default,
+    V: Copy + Default,
+    T::Error: std::fmt::Debug,
 {
     match ops {
         Some(&Operations { load, store }) => {

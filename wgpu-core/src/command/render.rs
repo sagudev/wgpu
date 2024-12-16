@@ -650,10 +650,10 @@ pub enum AttachmentError {
     NoLoad,
     #[error("Attachment without store")]
     NoStore,
-    #[error("Clear value is not provided")]
+    #[error("LoadOp is `Clear` but no clear value was provided")]
     NoClearValue,
-    #[error("Clear value must be between 0.0 and 1.0, inclusive")]
-    ClearValueOutOfRange,
+    #[error("Clear value ({0}) must be between 0.0 and 1.0, inclusive")]
+    ClearValueOutOfRange(f32),
 }
 
 /// Error encountered when performing a render pass.
@@ -1482,7 +1482,7 @@ impl Global {
                     if depth_stencil_attachment.depth.load_op == Some(LoadOp::Clear) {
                         if let Some(clear_value) = depth_stencil_attachment.depth.clear_value {
                             if !(0.0..=1.0).contains(&clear_value) {
-                                return Err(CommandEncoderError::InvalidAttachment(AttachmentError::ClearValueOutOfRange));
+                                return Err(CommandEncoderError::InvalidAttachment(AttachmentError::ClearValueOutOfRange(clear_value)));
                             }
                         } else {
                             return Err(CommandEncoderError::InvalidAttachment(AttachmentError::NoClearValue));
@@ -1490,6 +1490,7 @@ impl Global {
                     }
 
                     let depth = {
+                        // We cannot update struct because of different generic
                         let PassChannel { load_op, store_op, clear_value, read_only } = depth_stencil_attachment.depth;
                         PassChannel {
                             load_op,
