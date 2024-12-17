@@ -1667,6 +1667,10 @@ pub enum CreateTextureViewError {
         view: wgt::TextureViewDimension,
         texture: wgt::TextureDimension,
     },
+    #[error("Texture view format `{0:?}` is not renderable")]
+    TextureViewFormatNotRenderable(wgt::TextureFormat),
+    #[error("Texture view format `{0:?}` is not storage bindable")]
+    TextureViewFormatNotStorage(wgt::TextureFormat),
     #[error("Invalid texture view usage `{view:?}` with texture of usage `{texture:?}`")]
     InvalidTextureViewUsage {
         view: wgt::TextureUsages,

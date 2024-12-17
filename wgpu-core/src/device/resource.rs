@@ -1100,6 +1100,25 @@ impl Device {
             }
         };
 
+        let allowed_format_usages = resolved_format
+            .guaranteed_format_features(self.features)
+            .allowed_usages;
+        if resolved_usage.contains(wgt::TextureUsages::RENDER_ATTACHMENT)
+            && !allowed_format_usages.contains(wgt::TextureUsages::RENDER_ATTACHMENT)
+        {
+            return Err(
+                resource::CreateTextureViewError::TextureViewFormatNotRenderable(resolved_format),
+            );
+        }
+
+        if resolved_usage.contains(wgt::TextureUsages::STORAGE_BINDING)
+            && !allowed_format_usages.contains(wgt::TextureUsages::STORAGE_BINDING)
+        {
+            return Err(
+                resource::CreateTextureViewError::TextureViewFormatNotStorage(resolved_format),
+            );
+        }
+
         // validate TextureViewDescriptor
 
         let aspects = hal::FormatAspects::new(texture.desc.format, desc.range.aspect);
