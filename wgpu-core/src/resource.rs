@@ -1554,8 +1554,8 @@ pub struct TextureViewDescriptor<'a> {
     /// - For 3D textures it must be `D3`.
     pub dimension: Option<wgt::TextureViewDimension>,
     /// The allowed usage(s) for the texture view. Must be a subset of the usage flags of the texture.
-    /// If 0, defaults to the full set of usage flags of the texture.
-    pub usage: wgt::TextureUsages,
+    /// If not provided, defaults to the full set of usage flags of the texture.
+    pub usage: Option<wgt::TextureUsages>,
     /// Range within the texture that is accessible via this view.
     pub range: wgt::ImageSubresourceRange,
 }

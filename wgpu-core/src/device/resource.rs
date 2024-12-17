@@ -1086,15 +1086,18 @@ impl Device {
                         .saturating_sub(desc.range.base_array_layer),
                 });
 
-        let resolved_usage = if desc.usage == wgt::TextureUsages::FROM_PARENT {
-            texture.desc.usage
-        } else if texture.desc.usage.contains(desc.usage) {
-            desc.usage
-        } else {
-            return Err(resource::CreateTextureViewError::InvalidTextureViewUsage {
-                view: desc.usage,
-                texture: texture.desc.usage,
-            });
+        let resolved_usage = {
+            let usage = desc.usage.unwrap_or(wgt::TextureUsages::empty());
+            if usage.is_empty() {
+                texture.desc.usage
+            } else if texture.desc.usage.contains(usage) {
+                usage
+            } else {
+                return Err(resource::CreateTextureViewError::InvalidTextureViewUsage {
+                    view: usage,
+                    texture: texture.desc.usage,
+                });
+            }
         };
 
         // validate TextureViewDescriptor

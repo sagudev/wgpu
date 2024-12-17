@@ -8,7 +8,6 @@ use deno_core::ResourceId;
 use serde::Deserialize;
 use std::borrow::Cow;
 use std::rc::Rc;
-use wgpu_types::TextureUsages;
 
 use super::error::WebGpuResult;
 pub(crate) struct WebGpuTexture {
@@ -116,7 +115,7 @@ pub fn op_webgpu_create_texture_view(
         format: args.format,
         dimension: args.dimension,
         range: args.range,
-        usage: TextureUsages::FROM_PARENT, // FIXME: Actually obtain from parent
+        usage: None, // FIXME: Actually obtain from parent
     };
 
     gfx_put!(instance.texture_create_view(
