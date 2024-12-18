@@ -1100,8 +1100,8 @@ impl Device {
             }
         };
 
-        let allowed_format_usages = resolved_format
-            .guaranteed_format_features(self.features)
+        let allowed_format_usages = self
+            .describe_format_features(resolved_format)?
             .allowed_usages;
         if resolved_usage.contains(wgt::TextureUsages::RENDER_ATTACHMENT)
             && !allowed_format_usages.contains(wgt::TextureUsages::RENDER_ATTACHMENT)

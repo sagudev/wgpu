@@ -1711,6 +1711,8 @@ pub enum CreateTextureViewError {
     },
     #[error(transparent)]
     InvalidResource(#[from] InvalidResourceError),
+    #[error(transparent)]
+    MissingFeatures(#[from] MissingFeatures),
 }
 
 #[derive(Clone, Debug, Error)]
