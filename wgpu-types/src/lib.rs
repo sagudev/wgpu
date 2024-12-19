@@ -4876,8 +4876,10 @@ impl Eq for DepthBiasState {}
 ///
 /// Corresponds to [WebGPU `GPULoadOp`](https://gpuweb.github.io/gpuweb/#enumdef-gpuloadop),
 /// plus the corresponding clearValue.
+#[repr(u8)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum LoadOp<V> {
     /// Loads the specified value for this attachment into the render pass.
     ///
@@ -4889,9 +4891,19 @@ pub enum LoadOp<V> {
     /// As a result, it is recommended to use "clear" rather than "load" in cases
     /// where the initial value doesn’t matter
     /// (e.g. the render target will be cleared using a skybox).
-    Clear(V),
+    Clear(V) = 0,
     /// Loads the existing value for this attachment into the render pass.
-    Load,
+    Load = 1,
+}
+
+impl<V> LoadOp<V> {
+    /// Returns discriminant of LoadOp (useful for operation only comparison)
+    pub fn discriminant(&self) -> u8 {
+        // SAFETY: Because `Self` is marked `repr(u8)`, its layout is a `repr(C)` `union`
+        // between `repr(C)` structs, each of which has the `u8` discriminant as its first
+        // field, so we can read the discriminant without offsetting the pointer.
+        unsafe { *<*const _>::from(self).cast::<u8>() }
+    }
 }
 
 impl<V: Default> Default for LoadOp<V> {
@@ -4903,12 +4915,14 @@ impl<V: Default> Default for LoadOp<V> {
 /// Operation to perform to the output attachment at the end of a render pass.
 ///
 /// Corresponds to [WebGPU `GPUStoreOp`](https://gpuweb.github.io/gpuweb/#enumdef-gpustoreop).
+#[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum StoreOp {
     /// Stores the resulting value of the render pass for this attachment.
     #[default]
-    Store,
+    Store = 0,
     /// Discards the resulting value of the render pass for this attachment.
     ///
     /// The attachment will be treated as uninitialized afterwards.
@@ -4918,7 +4932,7 @@ pub enum StoreOp {
     /// This can be significantly faster on tile-based render hardware.
     ///
     /// Prefer this if the attachment is not read by subsequent passes.
-    Discard,
+    Discard = 1,
 }
 
 /// Pair of load and store operations for an attachment aspect.
