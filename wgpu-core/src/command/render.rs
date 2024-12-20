@@ -955,7 +955,7 @@ impl<'d> RenderPassInfo<'d> {
             let ds_aspects = view.desc.aspects();
 
             if !ds_aspects.contains(hal::FormatAspects::STENCIL)
-                || (at.stencil.load_op().discriminant() == at.depth.load_op().discriminant()
+                || (at.stencil.load_op().eq_variant(at.depth.load_op())
                     && at.stencil.store_op() == at.depth.store_op())
             {
                 Self::add_pass_texture_init_actions(
