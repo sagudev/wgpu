@@ -2929,7 +2929,7 @@ impl Device {
                 if attribute.shader_location >= self.limits.max_vertex_attributes {
                     return Err(
                         pipeline::CreateRenderPipelineError::TooManyVertexAttributes {
-                            given: total_attributes as u32,
+                            given: attribute.shader_location,
                             limit: self.limits.max_vertex_attributes,
                         },
                     );
@@ -2942,11 +2942,13 @@ impl Device {
                 vb_state.array_stride
             };
             if last_stride > max_stride {
-                return Err(pipeline::CreateRenderPipelineError::VertexStrideTooLarge {
-                    index: i as u32,
-                    given: last_stride as u32,
-                    limit: max_stride as u32,
-                });
+                return Err(
+                    pipeline::CreateRenderPipelineError::VertexAttributeStrideTooLarge {
+                        index: i as u32,
+                        given: last_stride as u32,
+                        limit: max_stride as u32,
+                    },
+                );
             }
             vertex_steps.push(pipeline::VertexStep {
                 stride: vb_state.array_stride,
