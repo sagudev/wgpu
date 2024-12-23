@@ -1976,14 +1976,14 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 let lowered_base = self.expression_for_reference(base, ctx)?;
                 let index = self.expression(index, ctx)?;
 
-                if let Typed::Plain(handle) = lowered_base {
+                /*if let Typed::Plain(handle) = lowered_base {
                     if resolve_inner!(ctx, handle).pointer_space().is_some() {
                         return Err(Error::Pointer(
                             "the value indexed by a `[]` subscripting expression",
                             ctx.ast_expressions.get_span(base),
                         ));
                     }
-                }
+                }*/
 
                 lowered_base.map(|base| match ctx.const_access(index) {
                     Some(index) => crate::Expression::AccessIndex { base, index },
@@ -2021,15 +2021,24 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 
                     Typed::Plain(handle) => {
                         let inner = resolve_inner!(ctx, handle);
-                        if let crate::TypeInner::Pointer { .. }
-                        | crate::TypeInner::ValuePointer { .. } = *inner
-                        {
-                            return Err(Error::Pointer(
-                                "the value accessed by a `.member` expression",
-                                ctx.ast_expressions.get_span(base),
-                            ));
+                        match *inner {
+                            crate::TypeInner::Pointer { base, .. } => &ctx.module.types[base].inner,
+                            crate::TypeInner::ValuePointer {
+                                size: None, scalar, ..
+                            } => {
+                                temp_inner = crate::TypeInner::Scalar(scalar);
+                                &temp_inner
+                            }
+                            crate::TypeInner::ValuePointer {
+                                size: Some(size),
+                                scalar,
+                                ..
+                            } => {
+                                temp_inner = crate::TypeInner::Vector { size, scalar };
+                                &temp_inner
+                            }
+                            _ => inner,
                         }
-                        inner
                     }
                 };
 
