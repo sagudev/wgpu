@@ -2918,7 +2918,8 @@ impl Device {
             }
             let mut last_stride = 0;
             for attribute in vb_state.attributes.iter() {
-                if attribute.offset % attribute.format.size().min(4) != 0 {
+                let required_offset_alignment = attribute.format.size().min(4);
+                if attribute.offset % required_offset_alignment != 0 {
                     return Err(
                         pipeline::CreateRenderPipelineError::InvalidVertexAttributeOffset {
                             location: attribute.shader_location,
