@@ -2916,8 +2916,25 @@ impl Device {
                     stride: vb_state.array_stride,
                 });
             }
+
+            let max_stride = if vb_state.array_stride == 0 {
+                self.limits.max_vertex_buffer_array_stride as u64
+            } else {
+                vb_state.array_stride
+            };
             let mut last_stride = 0;
             for attribute in vb_state.attributes.iter() {
+                let attribute_stride = attribute.offset + attribute.format.size();
+                if attribute_stride > max_stride {
+                    return Err(
+                        pipeline::CreateRenderPipelineError::VertexAttributeStrideTooLarge {
+                            location: attribute.shader_location,
+                            given: attribute_stride as u32,
+                            limit: max_stride as u32,
+                        },
+                    );
+                }
+
                 let required_offset_alignment = attribute.format.size().min(4);
                 if attribute.offset % required_offset_alignment != 0 {
                     return Err(
@@ -2927,6 +2944,7 @@ impl Device {
                         },
                     );
                 }
+
                 if attribute.shader_location >= self.limits.max_vertex_attributes {
                     return Err(
                         pipeline::CreateRenderPipelineError::TooManyVertexAttributes {
@@ -2935,21 +2953,8 @@ impl Device {
                         },
                     );
                 }
-                last_stride = last_stride.max(attribute.offset + attribute.format.size());
-            }
-            let max_stride = if vb_state.array_stride == 0 {
-                self.limits.max_vertex_buffer_array_stride as u64
-            } else {
-                vb_state.array_stride
-            };
-            if last_stride > max_stride {
-                return Err(
-                    pipeline::CreateRenderPipelineError::VertexAttributeStrideTooLarge {
-                        index: i as u32,
-                        given: last_stride as u32,
-                        limit: max_stride as u32,
-                    },
-                );
+
+                last_stride = last_stride.max(attribute_stride);
             }
             vertex_steps.push(pipeline::VertexStep {
                 stride: vb_state.array_stride,
