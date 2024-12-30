@@ -41,7 +41,7 @@ impl LanguageExtension {
     /// Maps this [`LanguageExtension`] into the sentinel word associated with it in WGSL.
     pub const fn to_ident(self) -> &'static str {
         match self {
-            Self::Implemented(kind) => match kind {},
+            Self::Implemented(kind) => kind.to_ident(),
             Self::Unimplemented(kind) => match kind {
                 UnimplementedLanguageExtension::ReadOnlyAndReadWriteStorageTextures => {
                     Self::READONLY_AND_READWRITE_STORAGE_TEXTURES
@@ -62,7 +62,21 @@ impl LanguageExtension {
 
 /// A variant of [`LanguageExtension::Implemented`].
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) enum ImplementedLanguageExtension {}
+pub enum ImplementedLanguageExtension {}
+
+impl ImplementedLanguageExtension {
+    const ALL: [ImplementedLanguageExtension; 0] = [];
+
+    /// Returns slice of all variants of [`ImplementedLanguageExtension`].
+    pub const fn all() -> &'static [Self] {
+        &Self::ALL
+    }
+
+    /// Maps this [`ImplementedLanguageExtension`] into the sentinel word associated with it in WGSL.
+    pub const fn to_ident(self) -> &'static str {
+        match self {}
+    }
+}
 
 /// A variant of [`LanguageExtension::Unimplemented`].
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
