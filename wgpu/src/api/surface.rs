@@ -135,7 +135,7 @@ impl Surface<'_> {
                 },
                 suboptimal,
                 presented: false,
-                detail: Arc::new(detail),
+                detail,
             })
             .ok_or(SurfaceError::Lost)
     }

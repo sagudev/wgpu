@@ -1,7 +1,4 @@
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use std::ops::{Deref, DerefMut};
 
 use crate::*;
 
@@ -14,7 +11,7 @@ use crate::*;
 /// Corresponds to [WebGPU `GPUQueue`](https://gpuweb.github.io/gpuweb/#gpu-queue).
 #[derive(Debug, Clone)]
 pub struct Queue {
-    pub(crate) inner: Arc<dispatch::DispatchQueue>,
+    pub(crate) inner: dispatch::DispatchQueue,
 }
 #[cfg(send_sync)]
 static_assertions::assert_impl_all!(Queue: Send, Sync);

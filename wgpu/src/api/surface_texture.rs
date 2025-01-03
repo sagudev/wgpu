@@ -1,4 +1,4 @@
-use std::{error, fmt, sync::Arc, thread};
+use std::{error, fmt, thread};
 
 use crate::*;
 
@@ -16,7 +16,7 @@ pub struct SurfaceTexture {
     /// but should be recreated for maximum performance.
     pub suboptimal: bool,
     pub(crate) presented: bool,
-    pub(crate) detail: Arc<dispatch::DispatchSurfaceOutputDetail>,
+    pub(crate) detail: dispatch::DispatchSurfaceOutputDetail,
 }
 #[cfg(send_sync)]
 static_assertions::assert_impl_all!(SurfaceTexture: Send, Sync);

@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::{marker::PhantomData, num::NonZeroU32, ops::Range};
 
 use crate::dispatch::RenderBundleEncoderInterface;
@@ -60,9 +59,7 @@ impl<'a> RenderBundleEncoder<'a> {
             dispatch::DispatchRenderBundleEncoder::WebGPU(b) => b.finish(desc),
         };
 
-        RenderBundle {
-            inner: Arc::new(bundle),
-        }
+        RenderBundle { inner: bundle }
     }
 
     /// Sets the active bind group for a given bind group index. The bind group layout
@@ -74,7 +71,7 @@ impl<'a> RenderBundleEncoder<'a> {
         Option<&'b BindGroup>: From<BG>,
     {
         let bg: Option<&'b BindGroup> = bind_group.into();
-        let bg = bg.map(|x| &*x.inner);
+        let bg = bg.map(|x| &x.inner);
         self.inner.set_bind_group(index, bg, offsets);
     }
 

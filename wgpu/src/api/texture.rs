@@ -48,9 +48,7 @@ impl Texture {
     pub fn create_view(&self, desc: &TextureViewDescriptor<'_>) -> TextureView {
         let view = self.shared.inner.create_view(desc);
 
-        TextureView {
-            inner: Arc::new(view),
-        }
+        TextureView { inner: view }
     }
 
     /// Destroy the associated native resources as soon as possible.

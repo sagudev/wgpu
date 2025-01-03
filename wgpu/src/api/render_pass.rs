@@ -70,7 +70,7 @@ impl RenderPass<'_> {
         Option<&'a BindGroup>: From<BG>,
     {
         let bg: Option<&'a BindGroup> = bind_group.into();
-        let bg = bg.map(|bg| &*bg.inner);
+        let bg = bg.map(|bg| &bg.inner);
 
         self.inner.set_bind_group(index, bg, offsets);
     }
@@ -272,7 +272,7 @@ impl RenderPass<'_> {
         &mut self,
         render_bundles: I,
     ) {
-        let mut render_bundles = render_bundles.into_iter().map(|rb| &*rb.inner);
+        let mut render_bundles = render_bundles.into_iter().map(|rb| &rb.inner);
 
         self.inner.execute_bundles(&mut render_bundles);
     }
