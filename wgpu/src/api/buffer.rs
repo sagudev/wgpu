@@ -8,10 +8,10 @@ use parking_lot::Mutex;
 
 use crate::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct BufferShared {
     pub inner: dispatch::DispatchBuffer,
-    pub map_context: Mutex<MapContext>,
+    pub map_context: Arc<Mutex<MapContext>>,
     pub size: wgt::BufferAddress,
     pub usage: BufferUsages,
     // Todo: missing map_state https://www.w3.org/TR/webgpu/#dom-gpubuffer-mapstate
@@ -179,7 +179,7 @@ pub(crate) struct BufferShared {
 /// [`MAP_WRITE`]: BufferUsages::MAP_WRITE
 #[derive(Debug, Clone)]
 pub struct Buffer {
-    pub(crate) shared: Arc<BufferShared>,
+    pub(crate) shared: BufferShared,
 }
 #[cfg(send_sync)]
 static_assertions::assert_impl_all!(Buffer: Send, Sync);

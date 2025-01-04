@@ -215,12 +215,12 @@ impl Device {
         let buffer = self.inner.create_buffer(desc);
 
         Buffer {
-            shared: Arc::new(BufferShared {
+            shared: BufferShared {
                 inner: buffer,
-                map_context: Mutex::new(map_context),
+                map_context: Arc::new(Mutex::new(map_context)),
                 size: desc.size,
                 usage: desc.usage,
-            }),
+            },
         }
     }
 
@@ -232,14 +232,14 @@ impl Device {
         let texture = self.inner.create_texture(desc);
 
         Texture {
-            shared: Arc::new(TextureShared {
+            shared: TextureShared {
                 inner: texture,
                 descriptor: TextureDescriptor {
                     label: None,
                     view_formats: &[],
                     ..desc.clone()
                 },
-            }),
+            },
         }
     }
 
@@ -264,14 +264,14 @@ impl Device {
                 .create_texture_from_hal::<A>(hal_texture, core_device, desc)
         };
         Texture {
-            shared: Arc::new(TextureShared {
+            shared: TextureShared {
                 inner: texture.into(),
                 descriptor: TextureDescriptor {
                     label: None,
                     view_formats: &[],
                     ..desc.clone()
                 },
-            }),
+            },
         }
     }
 
@@ -302,12 +302,12 @@ impl Device {
         };
 
         Buffer {
-            shared: Arc::new(BufferShared {
+            shared: BufferShared {
                 inner: buffer.into(),
-                map_context: Mutex::new(map_context),
+                map_context: Arc::new(Mutex::new(map_context)),
                 size: desc.size,
                 usage: desc.usage,
-            }),
+            },
         }
     }
 

@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use crate::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct TextureShared {
     pub(crate) inner: dispatch::DispatchTexture,
     pub(crate) descriptor: TextureDescriptor<'static>,
@@ -15,7 +13,7 @@ pub(crate) struct TextureShared {
 /// Corresponds to [WebGPU `GPUTexture`](https://gpuweb.github.io/gpuweb/#texture-interface).
 #[derive(Debug, Clone)]
 pub struct Texture {
-    pub(crate) shared: Arc<TextureShared>,
+    pub(crate) shared: TextureShared,
 }
 #[cfg(send_sync)]
 static_assertions::assert_impl_all!(Texture: Send, Sync);
