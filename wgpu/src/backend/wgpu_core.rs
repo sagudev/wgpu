@@ -373,7 +373,7 @@ fn map_texture_copy_view(
     view: crate::TexelCopyTextureInfo<'_>,
 ) -> wgc::command::TexelCopyTextureInfo {
     wgc::command::TexelCopyTextureInfo {
-        texture: view.texture.shared.inner.as_core().id,
+        texture: view.texture.inner.as_core().id,
         mip_level: view.mip_level,
         origin: view.origin,
         aspect: view.aspect,
@@ -388,7 +388,7 @@ fn map_texture_tagged_copy_view(
     view: wgt::CopyExternalImageDestInfo<&api::Texture>,
 ) -> wgc::command::CopyExternalImageDestInfo {
     wgc::command::CopyExternalImageDestInfo {
-        texture: view.texture.shared.inner.as_core().id,
+        texture: view.texture.inner.as_core().id,
         mip_level: view.mip_level,
         origin: view.origin,
         aspect: view.aspect,

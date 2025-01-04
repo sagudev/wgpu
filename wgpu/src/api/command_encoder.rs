@@ -183,8 +183,7 @@ impl CommandEncoder {
     /// - `CLEAR_TEXTURE` extension not enabled
     /// - Range is out of bounds
     pub fn clear_texture(&mut self, texture: &Texture, subresource_range: &ImageSubresourceRange) {
-        self.inner
-            .clear_texture(&texture.shared.inner, subresource_range);
+        self.inner.clear_texture(&texture.inner, subresource_range);
     }
 
     /// Clears buffer to zero.

@@ -128,10 +128,8 @@ impl Surface<'_> {
         texture
             .map(|texture| SurfaceTexture {
                 texture: Texture {
-                    shared: TextureShared {
-                        inner: texture,
-                        descriptor,
-                    },
+                    inner: texture,
+                    descriptor,
                 },
                 suboptimal,
                 presented: false,

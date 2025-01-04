@@ -230,13 +230,11 @@ impl Device {
         let texture = self.inner.create_texture(desc);
 
         Texture {
-            shared: TextureShared {
-                inner: texture,
-                descriptor: TextureDescriptor {
-                    label: None,
-                    view_formats: &[],
-                    ..desc.clone()
-                },
+            inner: texture,
+            descriptor: TextureDescriptor {
+                label: None,
+                view_formats: &[],
+                ..desc.clone()
             },
         }
     }
@@ -262,13 +260,11 @@ impl Device {
                 .create_texture_from_hal::<A>(hal_texture, core_device, desc)
         };
         Texture {
-            shared: TextureShared {
-                inner: texture.into(),
-                descriptor: TextureDescriptor {
-                    label: None,
-                    view_formats: &[],
-                    ..desc.clone()
-                },
+            inner: texture.into(),
+            descriptor: TextureDescriptor {
+                label: None,
+                view_formats: &[],
+                ..desc.clone()
             },
         }
     }

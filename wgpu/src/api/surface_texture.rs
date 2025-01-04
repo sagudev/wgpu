@@ -21,7 +21,7 @@ pub struct SurfaceTexture {
 #[cfg(send_sync)]
 static_assertions::assert_impl_all!(SurfaceTexture: Send, Sync);
 
-crate::cmp::impl_eq_ord_hash_proxy!(SurfaceTexture => .texture.shared.inner);
+crate::cmp::impl_eq_ord_hash_proxy!(SurfaceTexture => .texture.inner);
 
 impl SurfaceTexture {
     /// Schedule this texture to be presented on the owning surface.
