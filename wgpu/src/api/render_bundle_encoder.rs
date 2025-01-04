@@ -88,7 +88,7 @@ impl<'a> RenderBundleEncoder<'a> {
     /// use `buffer` as the source index buffer.
     pub fn set_index_buffer(&mut self, buffer_slice: BufferSlice<'a>, index_format: IndexFormat) {
         self.inner.set_index_buffer(
-            &buffer_slice.buffer.shared.inner,
+            &buffer_slice.buffer.inner,
             index_format,
             buffer_slice.offset,
             buffer_slice.size,
@@ -108,7 +108,7 @@ impl<'a> RenderBundleEncoder<'a> {
     pub fn set_vertex_buffer(&mut self, slot: u32, buffer_slice: BufferSlice<'a>) {
         self.inner.set_vertex_buffer(
             slot,
-            &buffer_slice.buffer.shared.inner,
+            &buffer_slice.buffer.inner,
             buffer_slice.offset,
             buffer_slice.size,
         );
@@ -168,7 +168,7 @@ impl<'a> RenderBundleEncoder<'a> {
     /// The structure expected in `indirect_buffer` must conform to [`DrawIndirectArgs`](crate::util::DrawIndirectArgs).
     pub fn draw_indirect(&mut self, indirect_buffer: &'a Buffer, indirect_offset: BufferAddress) {
         self.inner
-            .draw_indirect(&indirect_buffer.shared.inner, indirect_offset);
+            .draw_indirect(&indirect_buffer.inner, indirect_offset);
     }
 
     /// Draws indexed primitives using the active index buffer and the active vertex buffers,
@@ -184,7 +184,7 @@ impl<'a> RenderBundleEncoder<'a> {
         indirect_offset: BufferAddress,
     ) {
         self.inner
-            .draw_indexed_indirect(&indirect_buffer.shared.inner, indirect_offset);
+            .draw_indexed_indirect(&indirect_buffer.inner, indirect_offset);
     }
 }
 

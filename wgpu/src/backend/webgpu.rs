@@ -634,7 +634,7 @@ fn map_texture_view_dimension(
 fn map_buffer_copy_view(
     view: crate::TexelCopyBufferInfo<'_>,
 ) -> webgpu_sys::GpuTexelCopyBufferInfo {
-    let buffer = view.buffer.shared.inner.as_webgpu();
+    let buffer = view.buffer.inner.as_webgpu();
     let mapped = webgpu_sys::GpuTexelCopyBufferInfo::new(&buffer.inner);
     if let Some(bytes_per_row) = view.layout.bytes_per_row {
         mapped.set_bytes_per_row(bytes_per_row);

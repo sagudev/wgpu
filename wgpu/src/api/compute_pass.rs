@@ -92,7 +92,7 @@ impl ComputePass<'_> {
         indirect_offset: BufferAddress,
     ) {
         self.inner
-            .dispatch_workgroups_indirect(&indirect_buffer.shared.inner, indirect_offset);
+            .dispatch_workgroups_indirect(&indirect_buffer.inner, indirect_offset);
     }
 }
 

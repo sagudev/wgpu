@@ -215,12 +215,10 @@ impl Device {
         let buffer = self.inner.create_buffer(desc);
 
         Buffer {
-            shared: BufferShared {
-                inner: buffer,
-                map_context: Arc::new(Mutex::new(map_context)),
-                size: desc.size,
-                usage: desc.usage,
-            },
+            inner: buffer,
+            map_context: Arc::new(Mutex::new(map_context)),
+            size: desc.size,
+            usage: desc.usage,
         }
     }
 
@@ -302,12 +300,10 @@ impl Device {
         };
 
         Buffer {
-            shared: BufferShared {
-                inner: buffer.into(),
-                map_context: Arc::new(Mutex::new(map_context)),
-                size: desc.size,
-                usage: desc.usage,
-            },
+            inner: buffer.into(),
+            map_context: Arc::new(Mutex::new(map_context)),
+            size: desc.size,
+            usage: desc.usage,
         }
     }
 
