@@ -2,6 +2,8 @@
 //!
 //! The focal point of this module is the [`LanguageExtension`] API.
 
+use strum::VariantArray;
+
 /// A language extension recognized by Naga, but not guaranteed to be present in all environments.
 ///
 /// WGSL spec.: <https://www.w3.org/TR/WGSL/#language-extensions-sec>
@@ -61,15 +63,13 @@ impl LanguageExtension {
 }
 
 /// A variant of [`LanguageExtension::Implemented`].
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, VariantArray)]
 pub enum ImplementedLanguageExtension {}
 
 impl ImplementedLanguageExtension {
-    const ALL: [ImplementedLanguageExtension; 0] = [];
-
     /// Returns slice of all variants of [`ImplementedLanguageExtension`].
     pub const fn all() -> &'static [Self] {
-        &Self::ALL
+        Self::VARIANTS
     }
 
     /// Maps this [`ImplementedLanguageExtension`] into the sentinel word associated with it in WGSL.
