@@ -58,7 +58,7 @@ impl<'a> RenderBundleEncoder<'a> {
             #[cfg(webgpu)]
             dispatch::DispatchRenderBundleEncoder::WebGPU(b) => b.finish(desc),
             //#[cfg(custom)]
-            dispatch::DispatchRenderBundleEncoder::Custom(b) => b.finish(desc),
+            dispatch::DispatchRenderBundleEncoder::Custom(_) => unimplemented!(),
         };
 
         RenderBundle { inner: bundle }

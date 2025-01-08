@@ -12,4 +12,3 @@ pub(crate) use wgpu_core::ContextWgpuCore;
 //#[cfg(custom)]
 pub mod custom;
 //#[cfg(custom)]
-pub(crate) use custom::DynContext;

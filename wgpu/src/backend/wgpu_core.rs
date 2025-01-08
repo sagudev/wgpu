@@ -1,6 +1,6 @@
 use crate::{
     api,
-    dispatch::{self, BufferMappedRangeInterface, InterfaceTypes},
+    dispatch::{self, BufferMappedRangeInterface},
     BindingResource, BufferBinding, BufferDescriptor, CompilationInfo, CompilationMessage,
     CompilationMessageType, ErrorSource, Features, Label, LoadOp, MapMode, Operations,
     ShaderSource, SurfaceTargetUnsafe, TextureDescriptor,
@@ -735,35 +735,36 @@ crate::cmp::impl_eq_ord_hash_proxy!(CoreSurfaceOutputDetail => .surface_id);
 crate::cmp::impl_eq_ord_hash_proxy!(CoreQueueWriteBuffer => .mapping.ptr);
 crate::cmp::impl_eq_ord_hash_proxy!(CoreBufferMappedRange => .ptr);
 
-impl InterfaceTypes for ContextWgpuCore {
-    type Instance = ContextWgpuCore;
-    type Adapter = CoreAdapter;
-    type Device = CoreDevice;
-    type Queue = CoreQueue;
-    type ShaderModule = CoreShaderModule;
-    type BindGroupLayout = CoreBindGroupLayout;
-    type BindGroup = CoreBindGroup;
-    type TextureView = CoreTextureView;
-    type Sampler = CoreSampler;
-    type Buffer = CoreBuffer;
-    type Texture = CoreTexture;
-    type Blas = CoreBlas;
-    type Tlas = CoreTlas;
-    type QuerySet = CoreQuerySet;
-    type PipelineLayout = CorePipelineLayout;
-    type RenderPipeline = CoreRenderPipeline;
-    type ComputePipeline = CoreComputePipeline;
-    type PipelineCache = CorePipelineCache;
-    type CommandEncoder = CoreCommandEncoder;
-    type ComputePass = CoreComputePass;
-    type RenderPass = CoreRenderPass;
-    type CommandBuffer = CoreCommandBuffer;
-    type RenderBundleEncoder = CoreRenderBundleEncoder;
-    type RenderBundle = CoreRenderBundle;
-    type Surface = CoreSurface;
-    type SurfaceOutputDetail = CoreSurfaceOutputDetail;
-    type QueueWriteBuffer = CoreQueueWriteBuffer;
-    type BufferMappedRange = CoreBufferMappedRange;
+pub(crate) mod interface_types {
+    use super::*;
+    pub type Instance = ContextWgpuCore;
+    pub type Adapter = CoreAdapter;
+    pub type Device = CoreDevice;
+    pub type Queue = CoreQueue;
+    pub type ShaderModule = CoreShaderModule;
+    pub type BindGroupLayout = CoreBindGroupLayout;
+    pub type BindGroup = CoreBindGroup;
+    pub type TextureView = CoreTextureView;
+    pub type Sampler = CoreSampler;
+    pub type Buffer = CoreBuffer;
+    pub type Texture = CoreTexture;
+    pub type Blas = CoreBlas;
+    pub type Tlas = CoreTlas;
+    pub type QuerySet = CoreQuerySet;
+    pub type PipelineLayout = CorePipelineLayout;
+    pub type RenderPipeline = CoreRenderPipeline;
+    pub type ComputePipeline = CoreComputePipeline;
+    pub type PipelineCache = CorePipelineCache;
+    pub type CommandEncoder = CoreCommandEncoder;
+    pub type ComputePass = CoreComputePass;
+    pub type RenderPass = CoreRenderPass;
+    pub type CommandBuffer = CoreCommandBuffer;
+    pub type RenderBundleEncoder = CoreRenderBundleEncoder;
+    pub type RenderBundle = CoreRenderBundle;
+    pub type Surface = CoreSurface;
+    pub type SurfaceOutputDetail = CoreSurfaceOutputDetail;
+    pub type QueueWriteBuffer = CoreQueueWriteBuffer;
+    pub type BufferMappedRange = CoreBufferMappedRange;
 }
 
 impl dispatch::InstanceInterface for ContextWgpuCore {

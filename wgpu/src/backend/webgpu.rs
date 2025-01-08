@@ -1429,35 +1429,36 @@ crate::cmp::impl_eq_ord_hash_proxy!(WebSurfaceOutputDetail => .ident);
 crate::cmp::impl_eq_ord_hash_proxy!(WebQueueWriteBuffer => .ident);
 crate::cmp::impl_eq_ord_hash_proxy!(WebBufferMappedRange => .ident);
 
-impl dispatch::InterfaceTypes for ContextWebGpu {
-    type Instance = ContextWebGpu;
-    type Adapter = WebAdapter;
-    type Device = WebDevice;
-    type Queue = WebQueue;
-    type ShaderModule = WebShaderModule;
-    type BindGroupLayout = WebBindGroupLayout;
-    type BindGroup = WebBindGroup;
-    type TextureView = WebTextureView;
-    type Sampler = WebSampler;
-    type Buffer = WebBuffer;
-    type Texture = WebTexture;
-    type Blas = WebBlas;
-    type Tlas = WebTlas;
-    type QuerySet = WebQuerySet;
-    type PipelineLayout = WebPipelineLayout;
-    type RenderPipeline = WebRenderPipeline;
-    type ComputePipeline = WebComputePipeline;
-    type PipelineCache = WebPipelineCache;
-    type CommandEncoder = WebCommandEncoder;
-    type ComputePass = WebComputePassEncoder;
-    type RenderPass = WebRenderPassEncoder;
-    type CommandBuffer = WebCommandBuffer;
-    type RenderBundleEncoder = WebRenderBundleEncoder;
-    type RenderBundle = WebRenderBundle;
-    type Surface = WebSurface;
-    type SurfaceOutputDetail = WebSurfaceOutputDetail;
-    type QueueWriteBuffer = WebQueueWriteBuffer;
-    type BufferMappedRange = WebBufferMappedRange;
+pub(crate) mod interface_types {
+    use super::*;
+    pub type Instance = ContextWebGpu;
+    pub type Adapter = WebAdapter;
+    pub type Device = WebDevice;
+    pub type Queue = WebQueue;
+    pub type ShaderModule = WebShaderModule;
+    pub type BindGroupLayout = WebBindGroupLayout;
+    pub type BindGroup = WebBindGroup;
+    pub type TextureView = WebTextureView;
+    pub type Sampler = WebSampler;
+    pub type Buffer = WebBuffer;
+    pub type Texture = WebTexture;
+    pub type Blas = WebBlas;
+    pub type Tlas = WebTlas;
+    pub type QuerySet = WebQuerySet;
+    pub type PipelineLayout = WebPipelineLayout;
+    pub type RenderPipeline = WebRenderPipeline;
+    pub type ComputePipeline = WebComputePipeline;
+    pub type PipelineCache = WebPipelineCache;
+    pub type CommandEncoder = WebCommandEncoder;
+    pub type ComputePass = WebComputePassEncoder;
+    pub type RenderPass = WebRenderPassEncoder;
+    pub type CommandBuffer = WebCommandBuffer;
+    pub type RenderBundleEncoder = WebRenderBundleEncoder;
+    pub type RenderBundle = WebRenderBundle;
+    pub type Surface = WebSurface;
+    pub type SurfaceOutputDetail = WebSurfaceOutputDetail;
+    pub type QueueWriteBuffer = WebQueueWriteBuffer;
+    pub type BufferMappedRange = WebBufferMappedRange;
 }
 
 impl dispatch::InstanceInterface for ContextWebGpu {

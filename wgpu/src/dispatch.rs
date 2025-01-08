@@ -49,40 +49,6 @@ pub type BufferMapCallback = Box<dyn FnOnce(Result<(), crate::BufferAsyncError>)
 
 // Common traits on all the interface traits
 trait_alias!(CommonTraits: Any + Debug + WasmNotSendSync);
-// Non-object-safe traits that are added as a bound on InterfaceTypes.
-trait_alias!(ComparisonTraits: PartialEq + Eq + PartialOrd + Ord + Hash);
-
-/// Types that represent a "Backend" for the wgpu API.
-pub trait InterfaceTypes {
-    type Instance: InstanceInterface + ComparisonTraits;
-    type Adapter: AdapterInterface + ComparisonTraits;
-    type Device: DeviceInterface + ComparisonTraits;
-    type Queue: QueueInterface + ComparisonTraits;
-    type ShaderModule: ShaderModuleInterface + ComparisonTraits;
-    type BindGroupLayout: BindGroupLayoutInterface + ComparisonTraits;
-    type BindGroup: BindGroupInterface + ComparisonTraits;
-    type TextureView: TextureViewInterface + ComparisonTraits;
-    type Sampler: SamplerInterface + ComparisonTraits;
-    type Buffer: BufferInterface + ComparisonTraits;
-    type Texture: TextureInterface + ComparisonTraits;
-    type Blas: BlasInterface + ComparisonTraits;
-    type Tlas: TlasInterface + ComparisonTraits;
-    type QuerySet: QuerySetInterface + ComparisonTraits;
-    type PipelineLayout: PipelineLayoutInterface + ComparisonTraits;
-    type RenderPipeline: RenderPipelineInterface + ComparisonTraits;
-    type ComputePipeline: ComputePipelineInterface + ComparisonTraits;
-    type PipelineCache: PipelineCacheInterface + ComparisonTraits;
-    type CommandEncoder: CommandEncoderInterface + ComparisonTraits;
-    type ComputePass: ComputePassInterface + ComparisonTraits;
-    type RenderPass: RenderPassInterface + ComparisonTraits;
-    type CommandBuffer: CommandBufferInterface + ComparisonTraits;
-    type RenderBundleEncoder: RenderBundleEncoderInterface + ComparisonTraits;
-    type RenderBundle: RenderBundleInterface + ComparisonTraits;
-    type Surface: SurfaceInterface + ComparisonTraits;
-    type SurfaceOutputDetail: SurfaceOutputDetailInterface + ComparisonTraits;
-    type QueueWriteBuffer: QueueWriteBufferInterface + ComparisonTraits;
-    type BufferMappedRange: BufferMappedRangeInterface + ComparisonTraits;
-}
 
 pub trait InstanceInterface: CommonTraits {
     fn new(desc: &wgt::InstanceDescriptor) -> Self
@@ -557,26 +523,23 @@ pub trait BufferMappedRangeInterface: CommonTraits {
 /// In the future, we may want a truly generic backend, which could be extended from this enum.
 macro_rules! dispatch_types_inner {
     (
-        wgpu_core = $wgpu_core_context:ty;
-        webgpu = $webgpu_context:ty;
-        custom = $custom_context:ty;
-        {ref type $name:ident = InterfaceTypes::$subtype:ident: $trait:ident};
+        {ref type $name:ident = $subtype:ident: $trait:ident};
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
         pub enum $name {
             #[cfg(wgpu_core)]
-            Core(Arc<<$wgpu_core_context as InterfaceTypes>::$subtype>),
+            Core(Arc<backend::wgpu_core::interface_types::$subtype>),
             #[cfg(webgpu)]
-            WebGPU(Arc<<$webgpu_context as InterfaceTypes>::$subtype>),
+            WebGPU(Arc<backend::webgpu::interface_types::$subtype>),
             //#[cfg(custom)]
-            Custom(<$custom_context as InterfaceTypes>::$subtype),
+            Custom(backend::custom::interface_types::$subtype),
         }
 
         impl $name {
             #[cfg(wgpu_core)]
             #[inline]
             #[allow(unused)]
-            pub fn as_core(&self) -> &<$wgpu_core_context as InterfaceTypes>::$subtype {
+            pub fn as_core(&self) -> &backend::wgpu_core::interface_types::$subtype {
                 match self {
                     Self::Core(value) => value,
                     _ => panic!(concat!(stringify!($name), " is not core")),
@@ -586,7 +549,7 @@ macro_rules! dispatch_types_inner {
             #[cfg(wgpu_core)]
             #[inline]
             #[allow(unused)]
-            pub fn as_core_opt(&self) -> Option<&<$wgpu_core_context as InterfaceTypes>::$subtype> {
+            pub fn as_core_opt(&self) -> Option<&backend::wgpu_core::interface_types::$subtype> {
                 match self {
                     Self::Core(value) => Some(value),
                     _ => None,
@@ -596,7 +559,7 @@ macro_rules! dispatch_types_inner {
             #[cfg(webgpu)]
             #[inline]
             #[allow(unused)]
-            pub fn as_webgpu(&self) -> &<$webgpu_context as InterfaceTypes>::$subtype {
+            pub fn as_webgpu(&self) -> &backend::webgpu::interface_types::$subtype {
                 match self {
                     Self::WebGPU(value) => value,
                     _ => panic!(concat!(stringify!($name), " is not webgpu")),
@@ -606,7 +569,7 @@ macro_rules! dispatch_types_inner {
             #[cfg(webgpu)]
             #[inline]
             #[allow(unused)]
-            pub fn as_webgpu_opt(&self) -> Option<&<$webgpu_context as InterfaceTypes>::$subtype> {
+            pub fn as_webgpu_opt(&self) -> Option<&backend::webgpu::interface_types::$subtype> {
                 match self {
                     Self::WebGPU(value) => Some(value),
                     _ => None,
@@ -615,17 +578,17 @@ macro_rules! dispatch_types_inner {
         }
 
         #[cfg(wgpu_core)]
-        impl From<<$wgpu_core_context as InterfaceTypes>::$subtype> for $name {
+        impl From<backend::wgpu_core::interface_types::$subtype> for $name {
             #[inline]
-            fn from(value: <$wgpu_core_context as InterfaceTypes>::$subtype) -> Self {
+            fn from(value: backend::wgpu_core::interface_types::$subtype) -> Self {
                 Self::Core(Arc::new(value))
             }
         }
 
         #[cfg(webgpu)]
-        impl From<<$webgpu_context as InterfaceTypes>::$subtype> for $name {
+        impl From<backend::webgpu::interface_types::$subtype> for $name {
             #[inline]
-            fn from(value: <$webgpu_context as InterfaceTypes>::$subtype) -> Self {
+            fn from(value: backend::webgpu::interface_types::$subtype) -> Self {
                 Self::WebGPU(Arc::new(value))
             }
         }
@@ -641,32 +604,29 @@ macro_rules! dispatch_types_inner {
                     #[cfg(webgpu)]
                     Self::WebGPU(value) => value.as_ref(),
                     //#[cfg(webgpu)]
-                    Self::Custom(value) => value,
+                    Self::Custom(value) => value.deref(),
                 }
             }
         }
     };
     (
-        wgpu_core = $wgpu_core_context:ty;
-        webgpu = $webgpu_context:ty;
-        custom = $custom_context:ty;
-        {mut type $name:ident = InterfaceTypes::$subtype:ident: $trait:ident};
+        {mut type $name:ident = $subtype:ident: $trait:ident};
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub enum $name {
             #[cfg(wgpu_core)]
-            Core(<$wgpu_core_context as InterfaceTypes>::$subtype),
+            Core(backend::wgpu_core::interface_types::$subtype),
             #[cfg(webgpu)]
-            WebGPU(<$webgpu_context as InterfaceTypes>::$subtype),
+            WebGPU(backend::webgpu::interface_types::$subtype),
             //#[cfg(custom)]
-            Custom(<$custom_context as InterfaceTypes>::$subtype),
+            Custom(backend::custom::interface_types::$subtype),
         }
 
         impl $name {
             #[cfg(wgpu_core)]
             #[inline]
             #[allow(unused)]
-            pub fn as_core(&self) -> &<$wgpu_core_context as InterfaceTypes>::$subtype {
+            pub fn as_core(&self) -> &backend::wgpu_core::interface_types::$subtype {
                 match self {
                     Self::Core(value) => value,
                     _ => panic!(concat!(stringify!($name), " is not core")),
@@ -676,7 +636,7 @@ macro_rules! dispatch_types_inner {
             #[cfg(wgpu_core)]
             #[inline]
             #[allow(unused)]
-            pub fn as_core_mut(&mut self) -> &mut <$wgpu_core_context as InterfaceTypes>::$subtype {
+            pub fn as_core_mut(&mut self) -> &mut backend::wgpu_core::interface_types::$subtype {
                 match self {
                     Self::Core(value) => value,
                     _ => panic!(concat!(stringify!($name), " is not core")),
@@ -686,7 +646,7 @@ macro_rules! dispatch_types_inner {
             #[cfg(wgpu_core)]
             #[inline]
             #[allow(unused)]
-            pub fn as_core_opt(&self) -> Option<&<$wgpu_core_context as InterfaceTypes>::$subtype> {
+            pub fn as_core_opt(&self) -> Option<&backend::wgpu_core::interface_types::$subtype> {
                 match self {
                     Self::Core(value) => Some(value),
                     _ => None,
@@ -698,7 +658,7 @@ macro_rules! dispatch_types_inner {
             #[allow(unused)]
             pub fn as_core_mut_opt(
                 &mut self,
-            ) -> Option<&mut <$wgpu_core_context as InterfaceTypes>::$subtype> {
+            ) -> Option<&mut backend::wgpu_core::interface_types::$subtype> {
                 match self {
                     Self::Core(value) => Some(value),
                     _ => None,
@@ -708,7 +668,7 @@ macro_rules! dispatch_types_inner {
             #[cfg(webgpu)]
             #[inline]
             #[allow(unused)]
-            pub fn as_webgpu(&self) -> &<$webgpu_context as InterfaceTypes>::$subtype {
+            pub fn as_webgpu(&self) -> &backend::webgpu::interface_types::$subtype {
                 match self {
                     Self::WebGPU(value) => value,
                     _ => panic!(concat!(stringify!($name), " is not webgpu")),
@@ -718,7 +678,7 @@ macro_rules! dispatch_types_inner {
             #[cfg(webgpu)]
             #[inline]
             #[allow(unused)]
-            pub fn as_webgpu_mut(&mut self) -> &mut <$webgpu_context as InterfaceTypes>::$subtype {
+            pub fn as_webgpu_mut(&mut self) -> &mut backend::webgpu::interface_types::$subtype {
                 match self {
                     Self::WebGPU(value) => value,
                     _ => panic!(concat!(stringify!($name), " is not webgpu")),
@@ -728,7 +688,7 @@ macro_rules! dispatch_types_inner {
             #[cfg(webgpu)]
             #[inline]
             #[allow(unused)]
-            pub fn as_webgpu_opt(&self) -> Option<&<$webgpu_context as InterfaceTypes>::$subtype> {
+            pub fn as_webgpu_opt(&self) -> Option<&backend::webgpu::interface_types::$subtype> {
                 match self {
                     Self::WebGPU(value) => Some(value),
                     _ => None,
@@ -740,7 +700,7 @@ macro_rules! dispatch_types_inner {
             #[allow(unused)]
             pub fn as_webgpu_mut_opt(
                 &mut self,
-            ) -> Option<&mut <$webgpu_context as InterfaceTypes>::$subtype> {
+            ) -> Option<&mut backend::webgpu::interface_types::$subtype> {
                 match self {
                     Self::WebGPU(value) => Some(value),
                     _ => None,
@@ -749,17 +709,17 @@ macro_rules! dispatch_types_inner {
         }
 
         #[cfg(wgpu_core)]
-        impl From<<$wgpu_core_context as InterfaceTypes>::$subtype> for $name {
+        impl From<backend::wgpu_core::interface_types::$subtype> for $name {
             #[inline]
-            fn from(value: <$wgpu_core_context as InterfaceTypes>::$subtype) -> Self {
+            fn from(value: backend::wgpu_core::interface_types::$subtype) -> Self {
                 Self::Core(value)
             }
         }
 
         #[cfg(webgpu)]
-        impl From<<$webgpu_context as InterfaceTypes>::$subtype> for $name {
+        impl From<backend::webgpu::interface_types::$subtype> for $name {
             #[inline]
-            fn from(value: <$webgpu_context as InterfaceTypes>::$subtype) -> Self {
+            fn from(value: backend::webgpu::interface_types::$subtype) -> Self {
                 Self::WebGPU(value)
             }
         }
@@ -775,7 +735,7 @@ macro_rules! dispatch_types_inner {
                     #[cfg(webgpu)]
                     Self::WebGPU(value) => value,
                     //#[cfg(custom)]
-                    Self::Custom(value) => value,
+                    Self::Custom(value) => value.deref(),
                 }
             }
         }
@@ -789,65 +749,150 @@ macro_rules! dispatch_types_inner {
                     #[cfg(webgpu)]
                     Self::WebGPU(value) => value,
                     //#[cfg(custom)]
-                    Self::Custom(value) => value,
+                    Self::Custom(value) => value.deref_mut(),
                 }
             }
         }
     };
 }
 
-macro_rules! dispatch_types {
-    (
-        wgpu_core = $wgpu_core_context:ty;
-        webgpu = $webgpu_context:ty;
-        custom = $custom_context:ty;
-        {$(
-            $type:tt;
-        )*}
-    ) => {
-        $(
-            dispatch_types_inner!{
-                wgpu_core = $wgpu_core_context;
-                webgpu = $webgpu_context;
-                custom = $custom_context;
-                $type;
-            }
-        )*
+dispatch_types_inner! {
+    {
+        ref type DispatchInstance = Instance:InstanceInterface
     };
 }
-
-dispatch_types! {
-    wgpu_core = backend::ContextWgpuCore;
-    webgpu = backend::ContextWebGpu;
-    custom = backend::DynContext;
+dispatch_types_inner! {
     {
-        {ref type DispatchInstance = InterfaceTypes::Instance: InstanceInterface};
-        {ref type DispatchAdapter = InterfaceTypes::Adapter: AdapterInterface};
-        {ref type DispatchDevice = InterfaceTypes::Device: DeviceInterface};
-        {ref type DispatchQueue = InterfaceTypes::Queue: QueueInterface};
-        {ref type DispatchShaderModule = InterfaceTypes::ShaderModule: ShaderModuleInterface};
-        {ref type DispatchBindGroupLayout = InterfaceTypes::BindGroupLayout: BindGroupLayoutInterface};
-        {ref type DispatchBindGroup = InterfaceTypes::BindGroup: BindGroupInterface};
-        {ref type DispatchTextureView = InterfaceTypes::TextureView: TextureViewInterface};
-        {ref type DispatchSampler = InterfaceTypes::Sampler: SamplerInterface};
-        {ref type DispatchBuffer = InterfaceTypes::Buffer: BufferInterface};
-        {ref type DispatchTexture = InterfaceTypes::Texture: TextureInterface};
-        {ref type DispatchBlas = InterfaceTypes::Blas: BlasInterface};
-        {ref type DispatchTlas = InterfaceTypes::Tlas: TlasInterface};
-        {ref type DispatchQuerySet = InterfaceTypes::QuerySet: QuerySetInterface};
-        {ref type DispatchPipelineLayout = InterfaceTypes::PipelineLayout: PipelineLayoutInterface};
-        {ref type DispatchRenderPipeline = InterfaceTypes::RenderPipeline: RenderPipelineInterface};
-        {ref type DispatchComputePipeline = InterfaceTypes::ComputePipeline: ComputePipelineInterface};
-        {ref type DispatchPipelineCache = InterfaceTypes::PipelineCache: PipelineCacheInterface};
-        {mut type DispatchCommandEncoder = InterfaceTypes::CommandEncoder: CommandEncoderInterface};
-        {mut type DispatchComputePass = InterfaceTypes::ComputePass: ComputePassInterface};
-        {mut type DispatchRenderPass = InterfaceTypes::RenderPass: RenderPassInterface};
-        {ref type DispatchCommandBuffer = InterfaceTypes::CommandBuffer: CommandBufferInterface};
-        {mut type DispatchRenderBundleEncoder = InterfaceTypes::RenderBundleEncoder: RenderBundleEncoderInterface};
-        {ref type DispatchRenderBundle = InterfaceTypes::RenderBundle: RenderBundleInterface};
-        {ref type DispatchSurface = InterfaceTypes::Surface: SurfaceInterface};
-        {ref type DispatchSurfaceOutputDetail = InterfaceTypes::SurfaceOutputDetail: SurfaceOutputDetailInterface};
-        {mut type DispatchQueueWriteBuffer = InterfaceTypes::QueueWriteBuffer: QueueWriteBufferInterface};
-        {mut type DispatchBufferMappedRange = InterfaceTypes::BufferMappedRange: BufferMappedRangeInterface};
-    }
+        ref type DispatchAdapter = Adapter:AdapterInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchDevice = Device:DeviceInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchQueue = Queue:QueueInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchShaderModule = ShaderModule:ShaderModuleInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchBindGroupLayout = BindGroupLayout:BindGroupLayoutInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchBindGroup = BindGroup:BindGroupInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchTextureView = TextureView:TextureViewInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchSampler = Sampler:SamplerInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchBuffer = Buffer:BufferInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchTexture = Texture:TextureInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchBlas = Blas:BlasInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchTlas = Tlas:TlasInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchQuerySet = QuerySet:QuerySetInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchPipelineLayout = PipelineLayout:PipelineLayoutInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchRenderPipeline = RenderPipeline:RenderPipelineInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchComputePipeline = ComputePipeline:ComputePipelineInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchPipelineCache = PipelineCache:PipelineCacheInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        mut type DispatchCommandEncoder = CommandEncoder:CommandEncoderInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        mut type DispatchComputePass = ComputePass:ComputePassInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        mut type DispatchRenderPass = RenderPass:RenderPassInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchCommandBuffer = CommandBuffer:CommandBufferInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        mut type DispatchRenderBundleEncoder = RenderBundleEncoder:RenderBundleEncoderInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchRenderBundle = RenderBundle:RenderBundleInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchSurface = Surface:SurfaceInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        ref type DispatchSurfaceOutputDetail = SurfaceOutputDetail:SurfaceOutputDetailInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        mut type DispatchQueueWriteBuffer = QueueWriteBuffer:QueueWriteBufferInterface
+    };
+}
+dispatch_types_inner! {
+    {
+        mut type DispatchBufferMappedRange = BufferMappedRange:BufferMappedRangeInterface
+    };
 }
