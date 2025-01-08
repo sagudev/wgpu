@@ -201,6 +201,14 @@ impl Instance {
         }
     }
 
+    //#[cfg(custom)]
+    /// Creates Instance from custom context implementation
+    pub fn from_custom_instance<T: InstanceInterface>(instance: T) -> Self {
+        Self {
+            inner: dispatch::DispatchInstance::Custom(backend::custom::DynContext::new(instance)),
+        }
+    }
+
     /// Retrieves all available [`Adapter`]s that match the given [`Backends`].
     ///
     /// # Arguments

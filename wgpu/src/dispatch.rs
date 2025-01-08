@@ -559,6 +559,7 @@ macro_rules! dispatch_types_inner {
     (
         wgpu_core = $wgpu_core_context:ty;
         webgpu = $webgpu_context:ty;
+        custom = $custom_context:ty;
         {ref type $name:ident = InterfaceTypes::$subtype:ident: $trait:ident};
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
@@ -567,6 +568,8 @@ macro_rules! dispatch_types_inner {
             Core(Arc<<$wgpu_core_context as InterfaceTypes>::$subtype>),
             #[cfg(webgpu)]
             WebGPU(Arc<<$webgpu_context as InterfaceTypes>::$subtype>),
+            //#[cfg(custom)]
+            Custom(<$custom_context as InterfaceTypes>::$subtype),
         }
 
         impl $name {
@@ -637,6 +640,8 @@ macro_rules! dispatch_types_inner {
                     Self::Core(value) => value.as_ref(),
                     #[cfg(webgpu)]
                     Self::WebGPU(value) => value.as_ref(),
+                    //#[cfg(webgpu)]
+                    Self::Custom(value) => value,
                 }
             }
         }
@@ -644,6 +649,7 @@ macro_rules! dispatch_types_inner {
     (
         wgpu_core = $wgpu_core_context:ty;
         webgpu = $webgpu_context:ty;
+        custom = $custom_context:ty;
         {mut type $name:ident = InterfaceTypes::$subtype:ident: $trait:ident};
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -652,6 +658,8 @@ macro_rules! dispatch_types_inner {
             Core(<$wgpu_core_context as InterfaceTypes>::$subtype),
             #[cfg(webgpu)]
             WebGPU(<$webgpu_context as InterfaceTypes>::$subtype),
+            //#[cfg(custom)]
+            Custom(<$custom_context as InterfaceTypes>::$subtype),
         }
 
         impl $name {
@@ -766,6 +774,8 @@ macro_rules! dispatch_types_inner {
                     Self::Core(value) => value,
                     #[cfg(webgpu)]
                     Self::WebGPU(value) => value,
+                    //#[cfg(custom)]
+                    Self::Custom(value) => value,
                 }
             }
         }
@@ -778,6 +788,8 @@ macro_rules! dispatch_types_inner {
                     Self::Core(value) => value,
                     #[cfg(webgpu)]
                     Self::WebGPU(value) => value,
+                    //#[cfg(custom)]
+                    Self::Custom(value) => value,
                 }
             }
         }
@@ -788,14 +800,16 @@ macro_rules! dispatch_types {
     (
         wgpu_core = $wgpu_core_context:ty;
         webgpu = $webgpu_context:ty;
+        custom = $custom_context:ty;
         {$(
             $type:tt;
         )*}
     ) => {
         $(
             dispatch_types_inner!{
-                wgpu_core = backend::ContextWgpuCore;
-                webgpu = backend::ContextWebGpu;
+                wgpu_core = $wgpu_core_context;
+                webgpu = $webgpu_context;
+                custom = $custom_context;
                 $type;
             }
         )*
@@ -805,6 +819,7 @@ macro_rules! dispatch_types {
 dispatch_types! {
     wgpu_core = backend::ContextWgpuCore;
     webgpu = backend::ContextWebGpu;
+    custom = backend::DynContext;
     {
         {ref type DispatchInstance = InterfaceTypes::Instance: InstanceInterface};
         {ref type DispatchAdapter = InterfaceTypes::Adapter: AdapterInterface};
