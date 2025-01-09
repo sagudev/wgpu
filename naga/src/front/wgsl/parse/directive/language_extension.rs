@@ -2,7 +2,7 @@
 //!
 //! The focal point of this module is the [`LanguageExtension`] API.
 
-/// A language extension not guaranteed to be present in all environments.
+/// A language extension recognized by Naga, but not guaranteed to be present in all environments.
 ///
 /// WGSL spec.: <https://www.w3.org/TR/WGSL/#language-extensions-sec>
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
