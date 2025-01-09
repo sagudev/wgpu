@@ -13,3 +13,13 @@ pub(crate) use wgpu_core::ContextWgpuCore;
 pub mod custom;
 //#[cfg(custom)]
 pub(crate) use custom::DynContext;
+
+pub trait Dispatch {
+    type Target: ?Sized;
+
+    fn dispatch(&self) -> &Self::Target;
+}
+
+pub trait DispatchMut: Dispatch {
+    fn dispatch_mut(&mut self) -> &mut Self::Target;
+}

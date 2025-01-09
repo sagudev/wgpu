@@ -17,7 +17,38 @@ use std::{
 };
 use wasm_bindgen::{prelude::*, JsCast};
 
+use crate::backend::{Dispatch, DispatchMut};
 use crate::{dispatch, SurfaceTargetUnsafe};
+
+macro_rules! deref {
+    (mut $name:ident: $interface:tt) => {
+        impl Dispatch for $name {
+            type Target = dyn dispatch::$interface;
+
+            #[inline]
+            fn dispatch(&self) -> &Self::Target {
+                self
+            }
+        }
+
+        impl DispatchMut for $name {
+            #[inline]
+            fn dispatch_mut(&mut self) -> &mut Self::Target {
+                self
+            }
+        }
+    };
+    (ref $name:ident: $interface:tt) => {
+        impl Dispatch for $name {
+            type Target = dyn dispatch::$interface;
+
+            #[inline]
+            fn dispatch(&self) -> &Self::Target {
+                self
+            }
+        }
+    };
+}
 
 use defined_non_null_js_value::DefinedNonNullJsValue;
 
@@ -1399,6 +1430,35 @@ impl_send_sync!(WebSurface);
 impl_send_sync!(WebSurfaceOutputDetail);
 impl_send_sync!(WebQueueWriteBuffer);
 impl_send_sync!(WebBufferMappedRange);
+
+deref!(ref ContextWebGpu: InstanceInterface);
+deref!(ref WebAdapter: AdapterInterface);
+deref!(ref WebQueue: QueueInterface);
+deref!(ref WebDevice: DeviceInterface);
+deref!(ref WebShaderModule: ShaderModuleInterface);
+deref!(ref WebBindGroupLayout: BindGroupLayoutInterface);
+deref!(ref WebBindGroup: BindGroupInterface);
+deref!(ref WebTextureView: TextureViewInterface);
+deref!(ref WebSampler: SamplerInterface);
+deref!(ref WebBuffer: BufferInterface);
+deref!(ref WebTexture: TextureInterface);
+deref!(ref WebBlas: BlasInterface);
+deref!(ref WebTlas: TlasInterface);
+deref!(ref WebQuerySet: QuerySetInterface);
+deref!(ref WebPipelineLayout: PipelineLayoutInterface);
+deref!(ref WebRenderPipeline: RenderPipelineInterface);
+deref!(ref WebComputePipeline: ComputePipelineInterface);
+deref!(ref WebPipelineCache: PipelineCacheInterface);
+deref!(mut WebCommandEncoder: CommandEncoderInterface);
+deref!(mut WebComputePassEncoder: ComputePassInterface);
+deref!(mut WebRenderPassEncoder: RenderPassInterface);
+deref!(ref WebCommandBuffer: CommandBufferInterface);
+deref!(mut WebRenderBundleEncoder: RenderBundleEncoderInterface);
+deref!(ref WebRenderBundle: RenderBundleInterface);
+deref!(ref WebSurface: SurfaceInterface);
+deref!(ref WebSurfaceOutputDetail: SurfaceOutputDetailInterface);
+deref!(mut WebQueueWriteBuffer: QueueWriteBufferInterface);
+deref!(mut WebBufferMappedRange: BufferMappedRangeInterface);
 
 crate::cmp::impl_eq_ord_hash_proxy!(ContextWebGpu => .ident);
 crate::cmp::impl_eq_ord_hash_proxy!(WebAdapter => .ident);

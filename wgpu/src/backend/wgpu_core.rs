@@ -6,6 +6,7 @@ use crate::{
     ShaderSource, SurfaceTargetUnsafe, TextureDescriptor,
 };
 
+use crate::backend::{Dispatch, DispatchMut};
 use arrayvec::ArrayVec;
 use parking_lot::Mutex;
 use smallvec::SmallVec;
@@ -15,6 +16,36 @@ use std::{
 };
 use wgc::{command::bundle_ffi::*, error::ContextErrorSource, pipeline::CreateShaderModuleError};
 use wgt::WasmNotSendSync;
+
+macro_rules! deref {
+    (mut $name:ident: $interface:tt) => {
+        impl Dispatch for $name {
+            type Target = dyn dispatch::$interface;
+
+            #[inline]
+            fn dispatch(&self) -> &Self::Target {
+                self
+            }
+        }
+
+        impl DispatchMut for $name {
+            #[inline]
+            fn dispatch_mut(&mut self) -> &mut Self::Target {
+                self
+            }
+        }
+    };
+    (ref $name:ident: $interface:tt) => {
+        impl Dispatch for $name {
+            type Target = dyn dispatch::$interface;
+
+            #[inline]
+            fn dispatch(&self) -> &Self::Target {
+                self
+            }
+        }
+    };
+}
 
 #[derive(Clone)]
 pub struct ContextWgpuCore(Arc<wgc::global::Global>);
@@ -734,6 +765,35 @@ crate::cmp::impl_eq_ord_hash_proxy!(CoreSurface => .id);
 crate::cmp::impl_eq_ord_hash_proxy!(CoreSurfaceOutputDetail => .surface_id);
 crate::cmp::impl_eq_ord_hash_proxy!(CoreQueueWriteBuffer => .mapping.ptr);
 crate::cmp::impl_eq_ord_hash_proxy!(CoreBufferMappedRange => .ptr);
+
+deref!(ref ContextWgpuCore: InstanceInterface);
+deref!(ref CoreAdapter: AdapterInterface);
+deref!(ref CoreQueue: QueueInterface);
+deref!(ref CoreDevice: DeviceInterface);
+deref!(ref CoreShaderModule: ShaderModuleInterface);
+deref!(ref CoreBindGroupLayout: BindGroupLayoutInterface);
+deref!(ref CoreBindGroup: BindGroupInterface);
+deref!(ref CoreTextureView: TextureViewInterface);
+deref!(ref CoreSampler: SamplerInterface);
+deref!(ref CoreBuffer: BufferInterface);
+deref!(ref CoreTexture: TextureInterface);
+deref!(ref CoreBlas: BlasInterface);
+deref!(ref CoreTlas: TlasInterface);
+deref!(ref CoreQuerySet: QuerySetInterface);
+deref!(ref CorePipelineLayout: PipelineLayoutInterface);
+deref!(ref CoreRenderPipeline: RenderPipelineInterface);
+deref!(ref CoreComputePipeline: ComputePipelineInterface);
+deref!(ref CorePipelineCache: PipelineCacheInterface);
+deref!(mut CoreCommandEncoder: CommandEncoderInterface);
+deref!(mut CoreComputePass: ComputePassInterface);
+deref!(mut CoreRenderPass: RenderPassInterface);
+deref!(ref CoreCommandBuffer: CommandBufferInterface);
+deref!(mut CoreRenderBundleEncoder: RenderBundleEncoderInterface);
+deref!(ref CoreRenderBundle: RenderBundleInterface);
+deref!(ref CoreSurface: SurfaceInterface);
+deref!(ref CoreSurfaceOutputDetail: SurfaceOutputDetailInterface);
+deref!(mut CoreQueueWriteBuffer: QueueWriteBufferInterface);
+deref!(mut CoreBufferMappedRange: BufferMappedRangeInterface);
 
 impl InterfaceTypes for ContextWgpuCore {
     type Instance = ContextWgpuCore;

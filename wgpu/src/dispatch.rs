@@ -15,7 +15,7 @@ use crate::{WasmNotSend, WasmNotSendSync};
 
 use std::{any::Any, fmt::Debug, future::Future, hash::Hash, ops::Range, pin::Pin, sync::Arc};
 
-use crate::backend;
+use crate::backend::{self, Dispatch, DispatchMut};
 
 /// Create a single trait with the given supertraits and a blanket impl for all types that implement them.
 ///
@@ -54,34 +54,35 @@ trait_alias!(ComparisonTraits: PartialEq + Eq + PartialOrd + Ord + Hash);
 
 /// Types that represent a "Backend" for the wgpu API.
 pub trait InterfaceTypes {
-    type Instance: InstanceInterface + ComparisonTraits;
-    type Adapter: AdapterInterface + ComparisonTraits;
-    type Device: DeviceInterface + ComparisonTraits;
-    type Queue: QueueInterface + ComparisonTraits;
-    type ShaderModule: ShaderModuleInterface + ComparisonTraits;
-    type BindGroupLayout: BindGroupLayoutInterface + ComparisonTraits;
-    type BindGroup: BindGroupInterface + ComparisonTraits;
-    type TextureView: TextureViewInterface + ComparisonTraits;
-    type Sampler: SamplerInterface + ComparisonTraits;
-    type Buffer: BufferInterface + ComparisonTraits;
-    type Texture: TextureInterface + ComparisonTraits;
-    type Blas: BlasInterface + ComparisonTraits;
-    type Tlas: TlasInterface + ComparisonTraits;
-    type QuerySet: QuerySetInterface + ComparisonTraits;
-    type PipelineLayout: PipelineLayoutInterface + ComparisonTraits;
-    type RenderPipeline: RenderPipelineInterface + ComparisonTraits;
-    type ComputePipeline: ComputePipelineInterface + ComparisonTraits;
-    type PipelineCache: PipelineCacheInterface + ComparisonTraits;
-    type CommandEncoder: CommandEncoderInterface + ComparisonTraits;
-    type ComputePass: ComputePassInterface + ComparisonTraits;
-    type RenderPass: RenderPassInterface + ComparisonTraits;
-    type CommandBuffer: CommandBufferInterface + ComparisonTraits;
-    type RenderBundleEncoder: RenderBundleEncoderInterface + ComparisonTraits;
-    type RenderBundle: RenderBundleInterface + ComparisonTraits;
-    type Surface: SurfaceInterface + ComparisonTraits;
-    type SurfaceOutputDetail: SurfaceOutputDetailInterface + ComparisonTraits;
-    type QueueWriteBuffer: QueueWriteBufferInterface + ComparisonTraits;
-    type BufferMappedRange: BufferMappedRangeInterface + ComparisonTraits;
+    type Instance: Dispatch<Target = dyn InstanceInterface> + ComparisonTraits;
+    type Adapter: Dispatch<Target = dyn AdapterInterface> + ComparisonTraits;
+    type Device: Dispatch<Target = dyn DeviceInterface> + ComparisonTraits;
+    type Queue: Dispatch<Target = dyn QueueInterface> + ComparisonTraits;
+    type ShaderModule: Dispatch<Target = dyn ShaderModuleInterface> + ComparisonTraits;
+    type BindGroupLayout: Dispatch<Target = dyn BindGroupLayoutInterface> + ComparisonTraits;
+    type BindGroup: Dispatch<Target = dyn BindGroupInterface> + ComparisonTraits;
+    type TextureView: Dispatch<Target = dyn TextureViewInterface> + ComparisonTraits;
+    type Sampler: Dispatch<Target = dyn SamplerInterface> + ComparisonTraits;
+    type Buffer: Dispatch<Target = dyn BufferInterface> + ComparisonTraits;
+    type Texture: Dispatch<Target = dyn TextureInterface> + ComparisonTraits;
+    type Blas: Dispatch<Target = dyn BlasInterface> + ComparisonTraits;
+    type Tlas: Dispatch<Target = dyn TlasInterface> + ComparisonTraits;
+    type QuerySet: Dispatch<Target = dyn QuerySetInterface> + ComparisonTraits;
+    type PipelineLayout: Dispatch<Target = dyn PipelineLayoutInterface> + ComparisonTraits;
+    type RenderPipeline: Dispatch<Target = dyn RenderPipelineInterface> + ComparisonTraits;
+    type ComputePipeline: Dispatch<Target = dyn ComputePipelineInterface> + ComparisonTraits;
+    type PipelineCache: Dispatch<Target = dyn PipelineCacheInterface> + ComparisonTraits;
+    type CommandEncoder: DispatchMut<Target = dyn CommandEncoderInterface> + ComparisonTraits;
+    type ComputePass: DispatchMut<Target = dyn ComputePassInterface> + ComparisonTraits;
+    type RenderPass: DispatchMut<Target = dyn RenderPassInterface> + ComparisonTraits;
+    type CommandBuffer: Dispatch<Target = dyn CommandBufferInterface> + ComparisonTraits;
+    type RenderBundleEncoder: DispatchMut<Target = dyn RenderBundleEncoderInterface>
+        + ComparisonTraits;
+    type RenderBundle: Dispatch<Target = dyn RenderBundleInterface> + ComparisonTraits;
+    type Surface: Dispatch<Target = dyn SurfaceInterface> + ComparisonTraits;
+    type SurfaceOutputDetail: Dispatch<Target = dyn SurfaceOutputDetailInterface> + ComparisonTraits;
+    type QueueWriteBuffer: DispatchMut<Target = dyn QueueWriteBufferInterface> + ComparisonTraits;
+    type BufferMappedRange: DispatchMut<Target = dyn BufferMappedRangeInterface> + ComparisonTraits;
 }
 
 pub trait InstanceInterface: CommonTraits {
@@ -637,11 +638,11 @@ macro_rules! dispatch_types_inner {
             fn deref(&self) -> &Self::Target {
                 match self {
                     #[cfg(wgpu_core)]
-                    Self::Core(value) => value.as_ref(),
+                    Self::Core(value) => value.dispatch(),
                     #[cfg(webgpu)]
-                    Self::WebGPU(value) => value.as_ref(),
+                    Self::WebGPU(value) => value.dispatch(),
                     //#[cfg(webgpu)]
-                    Self::Custom(value) => value,
+                    Self::Custom(value) => value.dispatch(),
                 }
             }
         }
@@ -771,11 +772,11 @@ macro_rules! dispatch_types_inner {
             fn deref(&self) -> &Self::Target {
                 match self {
                     #[cfg(wgpu_core)]
-                    Self::Core(value) => value,
+                    Self::Core(value) => value.dispatch(),
                     #[cfg(webgpu)]
-                    Self::WebGPU(value) => value,
+                    Self::WebGPU(value) => value.dispatch(),
                     //#[cfg(custom)]
-                    Self::Custom(value) => value,
+                    Self::Custom(value) => value.dispatch(),
                 }
             }
         }
@@ -785,11 +786,11 @@ macro_rules! dispatch_types_inner {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 match self {
                     #[cfg(wgpu_core)]
-                    Self::Core(value) => value,
+                    Self::Core(value) => value.dispatch_mut(),
                     #[cfg(webgpu)]
-                    Self::WebGPU(value) => value,
+                    Self::WebGPU(value) => value.dispatch_mut(),
                     //#[cfg(custom)]
-                    Self::Custom(value) => value,
+                    Self::Custom(value) => value.dispatch_mut(),
                 }
             }
         }
