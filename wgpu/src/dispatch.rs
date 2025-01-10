@@ -10,6 +10,7 @@
 
 #![allow(drop_bounds)] // This exists to remind implementors to impl drop.
 #![allow(clippy::too_many_arguments)] // It's fine.
+#![allow(missing_docs, clippy::missing_safety_doc)] // Interfaces are not documented
 
 use crate::{WasmNotSend, WasmNotSendSync};
 
@@ -51,7 +52,7 @@ pub type BufferMapCallback = Box<dyn FnOnce(Result<(), crate::BufferAsyncError>)
 trait_alias!(CommonTraits: Any + Debug + WasmNotSendSync);
 
 pub trait InstanceInterface: CommonTraits {
-    fn new(desc: &wgt::InstanceDescriptor) -> Self
+    fn new(desc: &crate::InstanceDescriptor) -> Self
     where
         Self: Sized;
 
@@ -100,7 +101,7 @@ pub trait DeviceInterface: CommonTraits {
     fn create_shader_module(
         &self,
         desc: crate::ShaderModuleDescriptor<'_>,
-        shader_bound_checks: wgt::ShaderRuntimeChecks,
+        shader_bound_checks: crate::ShaderRuntimeChecks,
     ) -> DispatchShaderModule;
     unsafe fn create_shader_module_spirv(
         &self,
@@ -158,7 +159,7 @@ pub trait DeviceInterface: CommonTraits {
     fn poll(&self, maintain: crate::Maintain) -> crate::MaintainResult;
 
     fn get_internal_counters(&self) -> crate::InternalCounters;
-    fn generate_allocator_report(&self) -> Option<wgt::AllocatorReport>;
+    fn generate_allocator_report(&self) -> Option<crate::AllocatorReport>;
 
     fn destroy(&self);
 }
@@ -170,8 +171,8 @@ pub trait QueueInterface: CommonTraits {
     fn validate_write_buffer(
         &self,
         buffer: &DispatchBuffer,
-        offset: wgt::BufferAddress,
-        size: wgt::BufferSize,
+        offset: crate::BufferAddress,
+        size: crate::BufferSize,
     ) -> Option<()>;
     fn write_staging_buffer(
         &self,
@@ -190,8 +191,8 @@ pub trait QueueInterface: CommonTraits {
     #[cfg(any(webgpu, webgl))]
     fn copy_external_image_to_texture(
         &self,
-        source: &wgt::CopyExternalImageSourceInfo,
-        dest: wgt::CopyExternalImageDestInfo<&crate::api::Texture>,
+        source: &crate::CopyExternalImageSourceInfo,
+        dest: crate::CopyExternalImageDestInfo<&crate::api::Texture>,
         size: crate::Extent3d,
     );
 
@@ -220,7 +221,7 @@ pub trait BufferInterface: CommonTraits {
     #[cfg(webgpu)]
     fn get_mapped_range_as_array_buffer(
         &self,
-        sub_range: Range<wgt::BufferAddress>,
+        sub_range: Range<crate::BufferAddress>,
     ) -> Option<js_sys::ArrayBuffer>;
 
     fn unmap(&self);
@@ -483,7 +484,7 @@ pub trait CommandBufferInterface: CommonTraits {}
 pub trait RenderBundleInterface: CommonTraits {}
 
 pub trait SurfaceInterface: CommonTraits {
-    fn get_capabilities(&self, adapter: &DispatchAdapter) -> wgt::SurfaceCapabilities;
+    fn get_capabilities(&self, adapter: &DispatchAdapter) -> crate::SurfaceCapabilities;
 
     fn configure(&self, device: &DispatchDevice, config: &crate::SurfaceConfiguration);
     fn get_current_texture(
@@ -523,7 +524,7 @@ pub trait BufferMappedRangeInterface: CommonTraits {
 /// In the future, we may want a truly generic backend, which could be extended from this enum.
 macro_rules! dispatch_types_inner {
     (
-        {ref type $name:ident = $subtype:ident: $trait:ident};
+        {ref type $name:ident = $subtype:ident: $interface:ident};
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
         pub enum $name {
@@ -531,6 +532,7 @@ macro_rules! dispatch_types_inner {
             Core(Arc<backend::wgpu_core::interface_types::$subtype>),
             #[cfg(webgpu)]
             WebGPU(Arc<backend::webgpu::interface_types::$subtype>),
+            #[allow(private_interfaces)]
             //#[cfg(custom)]
             Custom(backend::custom::interface_types::$subtype),
         }
@@ -575,6 +577,12 @@ macro_rules! dispatch_types_inner {
                     _ => None,
                 }
             }
+
+            //#[cfg(custom)]
+            #[inline]
+            pub fn custom<T: $interface>(t: T) -> Self {
+                Self::Custom(backend::custom::interface_types::$subtype::new(t))
+            }
         }
 
         #[cfg(wgpu_core)]
@@ -594,7 +602,7 @@ macro_rules! dispatch_types_inner {
         }
 
         impl std::ops::Deref for $name {
-            type Target = dyn $trait;
+            type Target = dyn $interface;
 
             #[inline]
             fn deref(&self) -> &Self::Target {
@@ -610,7 +618,7 @@ macro_rules! dispatch_types_inner {
         }
     };
     (
-        {mut type $name:ident = $subtype:ident: $trait:ident};
+        {mut type $name:ident = $subtype:ident: $interface:ident};
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub enum $name {
@@ -618,6 +626,7 @@ macro_rules! dispatch_types_inner {
             Core(backend::wgpu_core::interface_types::$subtype),
             #[cfg(webgpu)]
             WebGPU(backend::webgpu::interface_types::$subtype),
+            #[allow(private_interfaces)]
             //#[cfg(custom)]
             Custom(backend::custom::interface_types::$subtype),
         }
@@ -706,6 +715,12 @@ macro_rules! dispatch_types_inner {
                     _ => None,
                 }
             }
+
+            //#[cfg(custom)]
+            #[inline]
+            pub fn custom<T: $interface>(t: T) -> Self {
+                Self::Custom(backend::custom::interface_types::$subtype::new(t))
+            }
         }
 
         #[cfg(wgpu_core)]
@@ -725,7 +740,7 @@ macro_rules! dispatch_types_inner {
         }
 
         impl std::ops::Deref for $name {
-            type Target = dyn $trait;
+            type Target = dyn $interface;
 
             #[inline]
             fn deref(&self) -> &Self::Target {

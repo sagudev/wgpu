@@ -1,15 +1,8 @@
+//! Provides wrappers custom backend implementations
+
 #![allow(ambiguous_wide_pointer_comparisons)]
 
-use crate::dispatch::{
-    AdapterInterface, BindGroupInterface, BindGroupLayoutInterface, BlasInterface, BufferInterface,
-    BufferMappedRangeInterface, CommandBufferInterface, CommandEncoderInterface,
-    ComputePassInterface, ComputePipelineInterface, DeviceInterface, InstanceInterface,
-    PipelineCacheInterface, PipelineLayoutInterface, QuerySetInterface, QueueInterface,
-    QueueWriteBufferInterface, RenderBundleEncoderInterface, RenderBundleInterface,
-    RenderPassInterface, RenderPipelineInterface, SamplerInterface, ShaderModuleInterface,
-    SurfaceInterface, SurfaceOutputDetailInterface, TextureInterface, TextureViewInterface,
-    TlasInterface,
-};
+pub use crate::dispatch::*;
 
 use std::sync::Arc;
 
@@ -17,11 +10,11 @@ macro_rules! dyn_type {
     // cloning of arc forbidden
     (pub mut struct $name:ident(dyn $interface:tt)) => {
         #[derive(Debug)]
-        pub struct $name(Arc<dyn $interface>);
+        pub(crate) struct $name(Arc<dyn $interface>);
         crate::cmp::impl_eq_ord_hash_arc_address!($name => .0);
 
         impl $name {
-            pub fn new<T: $interface>(t: T) -> Self {
+            pub(crate) fn new<T: $interface>(t: T) -> Self {
                 Self(Arc::new(t))
             }
         }
@@ -45,11 +38,11 @@ macro_rules! dyn_type {
     // cloning of arc is allowed
     (pub ref struct $name:ident(dyn $interface:tt)) => {
         #[derive(Debug, Clone)]
-        pub struct $name(Arc<dyn $interface>);
+        pub(crate) struct $name(Arc<dyn $interface>);
         crate::cmp::impl_eq_ord_hash_arc_address!($name => .0);
 
         impl $name {
-            pub fn new<T: $interface>(t: T) -> Self {
+            pub(crate) fn new<T: $interface>(t: T) -> Self {
                 Self(Arc::new(t))
             }
         }

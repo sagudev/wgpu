@@ -44,14 +44,17 @@ pub mod util;
 //
 //
 
+//#[cfg(custom)]
+pub use backend::custom;
+
 pub use api::*;
 pub use wgt::{
-    AdapterInfo, AddressMode, AstcBlock, AstcChannel, Backend, Backends, BindGroupLayoutEntry,
-    BindingType, BlendComponent, BlendFactor, BlendOperation, BlendState, BufferAddress,
-    BufferBindingType, BufferSize, BufferUsages, Color, ColorTargetState, ColorWrites,
-    CommandBufferDescriptor, CompareFunction, CompositeAlphaMode, CoreCounters, DepthBiasState,
-    DepthStencilState, DeviceLostReason, DeviceType, DownlevelCapabilities, DownlevelFlags,
-    Dx12Compiler, DynamicOffset, Extent3d, Face, Features, FilterMode, FrontFace,
+    AdapterInfo, AddressMode, AllocatorReport, AstcBlock, AstcChannel, Backend, Backends,
+    BindGroupLayoutEntry, BindingType, BlendComponent, BlendFactor, BlendOperation, BlendState,
+    BufferAddress, BufferBindingType, BufferSize, BufferUsages, Color, ColorTargetState,
+    ColorWrites, CommandBufferDescriptor, CompareFunction, CompositeAlphaMode, CoreCounters,
+    DepthBiasState, DepthStencilState, DeviceLostReason, DeviceType, DownlevelCapabilities,
+    DownlevelFlags, Dx12Compiler, DynamicOffset, Extent3d, Face, Features, FilterMode, FrontFace,
     Gles3MinorVersion, HalCounters, ImageSubresourceRange, IndexFormat, InstanceDescriptor,
     InstanceFlags, InternalCounters, Limits, MaintainResult, MemoryHints, MultisampleState,
     Origin2d, Origin3d, PipelineStatisticsTypes, PolygonMode, PowerPreference,
@@ -74,7 +77,7 @@ pub use wgt::{ImageCopyBuffer, ImageCopyTexture, ImageCopyTextureTagged, ImageDa
 #[allow(deprecated)]
 pub use wgt::ImageCopyExternalImage;
 #[cfg(any(webgpu, webgl))]
-pub use wgt::{CopyExternalImageSourceInfo, ExternalImageSource};
+pub use wgt::{CopyExternalImageDestInfo, CopyExternalImageSourceInfo, ExternalImageSource};
 
 //
 //

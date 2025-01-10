@@ -202,8 +202,8 @@ impl Instance {
     }
 
     //#[cfg(custom)]
-    /// Creates Instance from custom context implementation
-    pub fn from_custom_instance<T: InstanceInterface>(instance: T) -> Self {
+    /// Creates instance from custom context implementation
+    pub fn from_custom<T: InstanceInterface>(instance: T) -> Self {
         Self {
             inner: dispatch::DispatchInstance::Custom(backend::custom::DynContext::new(instance)),
         }

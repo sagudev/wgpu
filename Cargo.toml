@@ -19,7 +19,7 @@ members = [
     "wgpu-info",
     "wgpu-macros",
     "wgpu-types",
-    "wgpu",
+    "wgpu", "wgpu-custom",
 ]
 exclude = []
 default-members = [
