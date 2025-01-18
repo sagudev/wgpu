@@ -372,6 +372,7 @@ pub struct ExpressionContext<'source, 'temp, 'out> {
 }
 
 impl<'source, 'temp, 'out> ExpressionContext<'source, 'temp, 'out> {
+    #[allow(dead_code)]
     fn as_const(&mut self) -> ExpressionContext<'source, '_, '_> {
         ExpressionContext {
             globals: self.globals,
@@ -2917,7 +2918,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 
         let offset = args
             .next()
-            .map(|arg| self.expression(arg, &mut ctx.as_const()))
+            .map(|arg| self.expression(arg, &mut ctx.as_global().as_const()))
             .ok()
             .transpose()?;
 
