@@ -2,14 +2,14 @@ use std::{borrow::Cow, fmt};
 
 use super::{builtins::MacroCall, Span};
 use crate::{
-    AddressSpace, BinaryOperator, Binding, Constant, Expression, Function, GlobalVariable, Handle,
-    Interpolation, Literal, Sampling, StorageAccess, Type, UnaryOperator,
+    AddressSpace, BinaryOperator, Binding, Expression, Function, GlobalConstant, GlobalVariable,
+    Handle, Interpolation, Literal, Sampling, StorageAccess, Type, UnaryOperator,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub enum GlobalLookupKind {
     Variable(Handle<GlobalVariable>),
-    Constant(Handle<Constant>, Handle<Type>),
+    Constant(Handle<GlobalConstant>, Handle<Type>),
     BlockSelect(Handle<GlobalVariable>, u32),
 }
 
@@ -102,7 +102,7 @@ pub struct VariableReference {
     pub load: bool,
     /// Whether the value of the variable can be changed or not
     pub mutable: bool,
-    pub constant: Option<(Handle<Constant>, Handle<Type>)>,
+    pub constant: Option<(Handle<GlobalConstant>, Handle<Type>)>,
     pub entry_arg: Option<usize>,
 }
 

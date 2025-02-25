@@ -3,8 +3,8 @@ use crate::{
     arena::HandleVec,
     proc::{ConstantEvaluator, ConstantEvaluatorError, Emitter},
     valid::{Capabilities, ModuleInfo, ValidationError, ValidationFlags, Validator},
-    Arena, Block, Constant, Expression, Function, Handle, Literal, Module, Override, Range, Scalar,
-    Span, Statement, TypeInner, WithSpan,
+    Arena, Block, Expression, Function, GlobalConstant, Handle, Literal, Module, Override, Range,
+    Scalar, Span, Statement, TypeInner, WithSpan,
 };
 use hashbrown::HashSet;
 use std::{borrow::Cow, mem};
@@ -212,7 +212,7 @@ pub fn process_overrides<'a>(
 
 fn process_pending(
     module: &mut Module,
-    override_map: &HandleVec<Override, Handle<Constant>>,
+    override_map: &HandleVec<Override, Handle<GlobalConstant>>,
     adjusted_global_expressions: &HandleVec<Expression, Handle<Expression>>,
 ) -> Result<(), PipelineConstantError> {
     for (handle, ty) in module.types.clone().iter() {
@@ -303,18 +303,18 @@ fn process_workgroup_size_override(
     Ok(())
 }
 
-/// Add a [`Constant`] to `module` for the override `old_h`.
+/// Add a [`GlobalConstant`] to `module` for the override `old_h`.
 ///
-/// Add the new `Constant` to `override_map` and `adjusted_constant_initializers`.
+/// Add the new `GlobalConstant` to `override_map` and `adjusted_constant_initializers`.
 fn process_override(
     (old_h, r#override, span): (Handle<Override>, Override, Span),
     pipeline_constants: &PipelineConstants,
     module: &mut Module,
-    override_map: &mut HandleVec<Override, Handle<Constant>>,
+    override_map: &mut HandleVec<Override, Handle<GlobalConstant>>,
     adjusted_global_expressions: &HandleVec<Expression, Handle<Expression>>,
-    adjusted_constant_initializers: &mut HashSet<Handle<Constant>>,
+    adjusted_constant_initializers: &mut HashSet<Handle<GlobalConstant>>,
     global_expression_kind_tracker: &mut crate::proc::ExpressionKindTracker,
-) -> Result<Handle<Constant>, PipelineConstantError> {
+) -> Result<Handle<GlobalConstant>, PipelineConstantError> {
     // Determine which key to use for `r#override` in `pipeline_constants`.
     let key = if let Some(id) = r#override.id {
         Cow::Owned(id.to_string())
@@ -344,7 +344,7 @@ fn process_override(
     };
 
     // Generate a new `Constant` to represent the override's value.
-    let constant = Constant {
+    let constant = GlobalConstant {
         name: r#override.name,
         ty: r#override.ty,
         init,
@@ -366,7 +366,7 @@ fn process_override(
 /// `Handle<Constant>` for the override's final value.
 fn process_function(
     module: &mut Module,
-    override_map: &HandleVec<Override, Handle<Constant>>,
+    override_map: &HandleVec<Override, Handle<GlobalConstant>>,
     layouter: &mut crate::proc::Layouter,
     function: &mut Function,
 ) -> Result<(), ConstantEvaluatorError> {

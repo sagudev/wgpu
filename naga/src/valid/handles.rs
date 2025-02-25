@@ -134,7 +134,7 @@ impl super::Validator {
             |handle| Self::validate_expression_handle(handle, global_expressions);
 
         for (_handle, constant) in constants.iter() {
-            let &crate::Constant { name: _, ty, init } = constant;
+            let &crate::GlobalConstant { name: _, ty, init } = constant;
             validate_type(ty)?;
             validate_const_expr(init)?;
         }
@@ -265,8 +265,8 @@ impl super::Validator {
     }
 
     fn validate_constant_handle(
-        handle: Handle<crate::Constant>,
-        constants: &Arena<crate::Constant>,
+        handle: Handle<crate::GlobalConstant>,
+        constants: &Arena<crate::GlobalConstant>,
     ) -> Result<(), InvalidHandleError> {
         handle.check_valid_for(constants).map(|_| ())
     }
@@ -350,7 +350,7 @@ impl super::Validator {
     /// expression and type arenas.
     fn validate_const_expression_handles(
         (handle, expression): (Handle<crate::Expression>, &crate::Expression),
-        constants: &Arena<crate::Constant>,
+        constants: &Arena<crate::GlobalConstant>,
         overrides: &Arena<crate::Override>,
     ) -> Result<Option<Handle<crate::Type>>, InvalidHandleError> {
         let validate_constant = |handle| Self::validate_constant_handle(handle, constants);
@@ -383,7 +383,7 @@ impl super::Validator {
     #[allow(clippy::too_many_arguments)]
     fn validate_expression_handles(
         (handle, expression): (Handle<crate::Expression>, &crate::Expression),
-        constants: &Arena<crate::Constant>,
+        constants: &Arena<crate::GlobalConstant>,
         overrides: &Arena<crate::Override>,
         global_expressions: &Arena<crate::Expression>,
         types: &UniqueArena<crate::Type>,
@@ -870,7 +870,7 @@ impl<T> crate::arena::Range<T> {
 
 #[test]
 fn constant_deps() {
-    use crate::{Constant, Expression, Literal, Span, Type, TypeInner};
+    use crate::{Expression, GlobalConstant, Literal, Span, Type, TypeInner};
 
     let nowhere = Span::default();
 
@@ -892,7 +892,7 @@ fn constant_deps() {
     // fun_exprs as a constant initializer.
     let fun_expr = fun_exprs.append(Expression::Literal(Literal::I32(42)), nowhere);
     let self_referential_const = constants.append(
-        Constant {
+        GlobalConstant {
             name: None,
             ty: i32_handle,
             init: fun_expr,

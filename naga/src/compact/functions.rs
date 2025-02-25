@@ -3,11 +3,11 @@ use super::{FunctionMap, ModuleMap};
 
 pub struct FunctionTracer<'a> {
     pub function: &'a crate::Function,
-    pub constants: &'a crate::Arena<crate::Constant>,
+    pub constants: &'a crate::Arena<crate::GlobalConstant>,
     pub overrides: &'a crate::Arena<crate::Override>,
 
     pub types_used: &'a mut HandleSet<crate::Type>,
-    pub constants_used: &'a mut HandleSet<crate::Constant>,
+    pub constants_used: &'a mut HandleSet<crate::GlobalConstant>,
     pub overrides_used: &'a mut HandleSet<crate::Override>,
     pub global_expressions_used: &'a mut HandleSet<crate::Expression>,
 

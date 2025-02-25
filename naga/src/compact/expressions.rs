@@ -2,7 +2,7 @@ use super::{HandleMap, HandleSet, ModuleMap};
 use crate::arena::{Arena, Handle};
 
 pub struct ExpressionTracer<'tracer> {
-    pub constants: &'tracer Arena<crate::Constant>,
+    pub constants: &'tracer Arena<crate::GlobalConstant>,
     pub overrides: &'tracer Arena<crate::Override>,
 
     /// The arena in which we are currently tracing expressions.
@@ -12,7 +12,7 @@ pub struct ExpressionTracer<'tracer> {
     pub types_used: &'tracer mut HandleSet<crate::Type>,
 
     /// The used map for `constants`.
-    pub constants_used: &'tracer mut HandleSet<crate::Constant>,
+    pub constants_used: &'tracer mut HandleSet<crate::GlobalConstant>,
 
     /// The used map for `overrides`.
     pub overrides_used: &'tracer mut HandleSet<crate::Override>,

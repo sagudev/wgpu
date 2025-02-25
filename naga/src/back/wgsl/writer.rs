@@ -1948,7 +1948,7 @@ impl<W: Write> Writer<W> {
     fn write_global_constant(
         &mut self,
         module: &Module,
-        handle: Handle<crate::Constant>,
+        handle: Handle<crate::GlobalConstant>,
     ) -> BackendResult {
         let name = &self.names[&NameKey::Constant(handle)];
         // First write only constant name

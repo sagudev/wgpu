@@ -292,7 +292,7 @@ pub fn compact(module: &mut crate::Module) {
 struct ModuleTracer<'module> {
     module: &'module crate::Module,
     types_used: HandleSet<crate::Type>,
-    constants_used: HandleSet<crate::Constant>,
+    constants_used: HandleSet<crate::GlobalConstant>,
     overrides_used: HandleSet<crate::Override>,
     global_expressions_used: HandleSet<crate::Expression>,
 }
@@ -436,7 +436,7 @@ impl<'module> ModuleTracer<'module> {
 
 struct ModuleMap {
     types: HandleMap<crate::Type>,
-    constants: HandleMap<crate::Constant>,
+    constants: HandleMap<crate::GlobalConstant>,
     overrides: HandleMap<crate::Override>,
     global_expressions: HandleMap<crate::Expression>,
 }
@@ -961,7 +961,7 @@ fn unnamed_constant_type() {
         .append(crate::Expression::Literal(crate::Literal::U32(0)), nowhere);
 
     let unnamed_constant = module.constants.append(
-        crate::Constant {
+        crate::GlobalConstant {
             name: None,
             ty: ty_u32,
             init: unnamed_init,
@@ -984,7 +984,7 @@ fn unnamed_constant_type() {
     );
 
     let _named_constant = module.constants.append(
-        crate::Constant {
+        crate::GlobalConstant {
             name: Some("totally_named".to_string()),
             ty: ty_vec_u32,
             init: named_init,

@@ -1887,7 +1887,7 @@ impl<'a, W: Write> Writer<'a, W> {
     }
 
     /// Helper method used to write global constants
-    fn write_global_constant(&mut self, handle: Handle<crate::Constant>) -> BackendResult {
+    fn write_global_constant(&mut self, handle: Handle<crate::GlobalConstant>) -> BackendResult {
         write!(self.out, "const ")?;
         let constant = &self.module.constants[handle];
         self.write_type(constant.ty)?;

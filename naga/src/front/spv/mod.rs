@@ -285,7 +285,7 @@ struct LookupType {
 
 #[derive(Debug)]
 enum Constant {
-    Constant(Handle<crate::Constant>),
+    Constant(Handle<crate::GlobalConstant>),
     Override(Handle<crate::Override>),
 }
 
@@ -4386,7 +4386,7 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
     fn make_expression_storage(
         &mut self,
         globals: &Arena<crate::GlobalVariable>,
-        constants: &Arena<crate::Constant>,
+        constants: &Arena<crate::GlobalConstant>,
         overrides: &Arena<crate::Override>,
     ) -> Arena<crate::Expression> {
         let mut expressions = Arena::new();
@@ -5722,7 +5722,7 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
             };
             Constant::Override(module.overrides.append(o, span))
         } else {
-            let c = crate::Constant {
+            let c = crate::GlobalConstant {
                 name: decor.name,
                 ty,
                 init,

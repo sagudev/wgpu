@@ -954,7 +954,7 @@ enum LoweredGlobalDecl {
         must_use: bool,
     },
     Var(Handle<crate::GlobalVariable>),
-    Const(Handle<crate::Constant>),
+    Const(Handle<crate::GlobalConstant>),
     Override(Handle<crate::Override>),
     Type(Handle<crate::Type>),
     EntryPoint,
@@ -1129,7 +1129,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     let init = init.expect("Global const must have init");
 
                     let handle = ctx.module.constants.append(
-                        crate::Constant {
+                        crate::GlobalConstant {
                             name: Some(c.name.name.to_string()),
                             ty,
                             init,

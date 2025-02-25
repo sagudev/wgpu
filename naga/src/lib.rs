@@ -922,12 +922,12 @@ pub struct Override {
     pub init: Option<Handle<Expression>>,
 }
 
-/// Constant value.
+/// Global Constant value.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
-pub struct Constant {
+pub struct GlobalConstant {
     pub name: Option<String>,
     pub ty: Handle<Type>,
 
@@ -1394,7 +1394,7 @@ pub enum Expression {
     /// Literal.
     Literal(Literal),
     /// Constant value.
-    Constant(Handle<Constant>),
+    Constant(Handle<GlobalConstant>),
     /// Pipeline-overridable constant.
     Override(Handle<Override>),
     /// Zero value of a type.
@@ -2440,7 +2440,7 @@ pub struct Module {
     /// Dictionary of special type handles.
     pub special_types: SpecialTypes,
     /// Arena for the constants defined in this module.
-    pub constants: Arena<Constant>,
+    pub constants: Arena<GlobalConstant>,
     /// Arena for the pipeline-overridable constants defined in this module.
     pub overrides: Arena<Override>,
     /// Arena for the global variables defined in this module.

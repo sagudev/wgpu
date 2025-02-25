@@ -4,7 +4,7 @@ use arrayvec::ArrayVec;
 
 use crate::{
     arena::{Arena, Handle, HandleVec, UniqueArena},
-    ArraySize, BinaryOperator, Constant, Expression, Literal, Override, RelationalFunction,
+    ArraySize, BinaryOperator, Expression, GlobalConstant, Literal, Override, RelationalFunction,
     ScalarKind, Span, Type, TypeInner, UnaryOperator,
 };
 
@@ -302,7 +302,7 @@ pub struct ConstantEvaluator<'a> {
     types: &'a mut UniqueArena<Type>,
 
     /// The module's constant arena.
-    constants: &'a Arena<Constant>,
+    constants: &'a Arena<GlobalConstant>,
 
     /// The module's override arena.
     overrides: &'a Arena<Override>,
@@ -2539,7 +2539,7 @@ mod tests {
     use std::vec;
 
     use crate::{
-        Arena, Constant, Expression, Literal, ScalarKind, Type, TypeInner, UnaryOperator,
+        Arena, Expression, GlobalConstant, Literal, ScalarKind, Type, TypeInner, UnaryOperator,
         UniqueArena, VectorSize,
     };
 
@@ -2572,7 +2572,7 @@ mod tests {
         );
 
         let h = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: scalar_ty,
                 init: global_expressions
@@ -2582,7 +2582,7 @@ mod tests {
         );
 
         let h1 = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: scalar_ty,
                 init: global_expressions
@@ -2592,7 +2592,7 @@ mod tests {
         );
 
         let vec_h = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: vec_ty,
                 init: global_expressions.append(
@@ -2694,7 +2694,7 @@ mod tests {
         );
 
         let h = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: scalar_ty,
                 init: global_expressions
@@ -2784,7 +2784,7 @@ mod tests {
         }
 
         let vec1 = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: vec_ty,
                 init: global_expressions.append(
@@ -2799,7 +2799,7 @@ mod tests {
         );
 
         let vec2 = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: vec_ty,
                 init: global_expressions.append(
@@ -2814,7 +2814,7 @@ mod tests {
         );
 
         let h = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: matrix_ty,
                 init: global_expressions.append(
@@ -2913,7 +2913,7 @@ mod tests {
         );
 
         let h = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: i32_ty,
                 init: global_expressions
@@ -2996,7 +2996,7 @@ mod tests {
         );
 
         let h = constants.append(
-            Constant {
+            GlobalConstant {
                 name: None,
                 ty: i32_ty,
                 init: global_expressions

@@ -118,7 +118,7 @@ pub enum TypeError {
     #[error("Matrix elements must always be floating-point types")]
     MatrixElementNotFloat,
     #[error("The constant {0:?} is specialized, and cannot be used as an array size")]
-    UnsupportedSpecializedArrayLength(Handle<crate::Constant>),
+    UnsupportedSpecializedArrayLength(Handle<crate::GlobalConstant>),
     #[error("{} of dimensionality {dim:?} and class {class:?} are not supported", if *.arrayed {"Arrayed images"} else {"Images"})]
     UnsupportedImageType {
         dim: crate::ImageDimension,

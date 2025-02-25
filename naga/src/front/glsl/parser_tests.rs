@@ -519,7 +519,7 @@ fn functions() {
 
 #[test]
 fn constants() {
-    use crate::{Constant, Expression, Type, TypeInner};
+    use crate::{Expression, GlobalConstant, Type, TypeInner};
 
     let mut frontend = Frontend::default();
 
@@ -555,7 +555,7 @@ fn constants() {
 
     assert_eq!(
         constants.next().unwrap().1,
-        &Constant {
+        &GlobalConstant {
             name: Some("a".to_owned()),
             ty: ty_handle,
             init: init_handle
@@ -564,7 +564,7 @@ fn constants() {
 
     assert_eq!(
         constants.next().unwrap().1,
-        &Constant {
+        &GlobalConstant {
             name: Some("b".to_owned()),
             ty: ty_handle,
             init: init_handle

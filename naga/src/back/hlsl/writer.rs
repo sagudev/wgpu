@@ -1097,7 +1097,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
     fn write_global_constant(
         &mut self,
         module: &Module,
-        handle: Handle<crate::Constant>,
+        handle: Handle<crate::GlobalConstant>,
     ) -> BackendResult {
         write!(self.out, "static const ")?;
         let constant = &module.constants[handle];

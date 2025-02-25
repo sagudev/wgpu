@@ -404,7 +404,7 @@ pub(super) enum U32EvalError {
 #[derive(Clone, Copy)]
 pub struct GlobalCtx<'a> {
     pub types: &'a crate::UniqueArena<crate::Type>,
-    pub constants: &'a crate::Arena<crate::Constant>,
+    pub constants: &'a crate::Arena<crate::GlobalConstant>,
     pub overrides: &'a crate::Arena<crate::Override>,
     pub global_expressions: &'a crate::Arena<crate::Expression>,
 }

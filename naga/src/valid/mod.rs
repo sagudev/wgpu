@@ -351,7 +351,7 @@ pub enum ValidationError {
     ArraySizeError { handle: Handle<crate::Expression> },
     #[error("Constant {handle:?} '{name}' is invalid")]
     Constant {
-        handle: Handle<crate::Constant>,
+        handle: Handle<crate::GlobalConstant>,
         name: String,
         source: ConstantError,
     },
@@ -496,7 +496,7 @@ impl Validator {
 
     fn validate_constant(
         &self,
-        handle: Handle<crate::Constant>,
+        handle: Handle<crate::GlobalConstant>,
         gctx: crate::proc::GlobalCtx,
         mod_info: &ModuleInfo,
         global_expr_kind: &ExpressionKindTracker,

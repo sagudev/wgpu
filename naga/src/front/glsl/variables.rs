@@ -5,9 +5,9 @@ use super::{
     Frontend, Result, Span,
 };
 use crate::{
-    AddressSpace, Binding, BuiltIn, Constant, Expression, GlobalVariable, Handle, Interpolation,
-    LocalVariable, ResourceBinding, Scalar, ScalarKind, ShaderStage, SwizzleComponent, Type,
-    TypeInner, VectorSize,
+    AddressSpace, Binding, BuiltIn, Expression, GlobalConstant, GlobalVariable, Handle,
+    Interpolation, LocalVariable, ResourceBinding, Scalar, ScalarKind, ShaderStage,
+    SwizzleComponent, Type, TypeInner, VectorSize,
 };
 
 pub struct VarDeclaration<'a, 'key> {
@@ -32,7 +32,7 @@ struct BuiltInData {
 
 pub enum GlobalOrConstant {
     Global(Handle<GlobalVariable>),
-    Constant(Handle<Constant>),
+    Constant(Handle<GlobalConstant>),
 }
 
 impl Frontend {
@@ -474,7 +474,7 @@ impl Frontend {
                     meta,
                 })?;
 
-                let constant = Constant {
+                let constant = GlobalConstant {
                     name: name.clone(),
                     ty,
                     init,

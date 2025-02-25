@@ -191,7 +191,7 @@ pub enum ResolveError {
 }
 
 pub struct ResolveContext<'a> {
-    pub constants: &'a Arena<crate::Constant>,
+    pub constants: &'a Arena<crate::GlobalConstant>,
     pub overrides: &'a Arena<crate::Override>,
     pub types: &'a UniqueArena<crate::Type>,
     pub special_types: &'a crate::SpecialTypes,
