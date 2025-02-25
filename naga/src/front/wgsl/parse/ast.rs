@@ -443,7 +443,7 @@ pub enum Expression<'a> {
     /// [`Constant`], [`As`], [`Splat`], or [`Compose`] expression.
     ///
     /// [`Lowerer::call`]: Lowerer::call
-    /// [`Constant`]: crate::Expression::Constant
+    /// [`Constant`]: crate::Expression::GlobalConstant
     /// [`As`]: crate::Expression::As
     /// [`Splat`]: crate::Expression::Splat
     /// [`Compose`]: crate::Expression::Compose

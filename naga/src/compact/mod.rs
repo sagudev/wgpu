@@ -974,7 +974,7 @@ fn unnamed_constant_type() {
     // constant's.
     let unnamed_constant_expr = module
         .global_expressions
-        .append(crate::Expression::Constant(unnamed_constant), nowhere);
+        .append(crate::Expression::GlobalConstant(unnamed_constant), nowhere);
     let named_init = module.global_expressions.append(
         crate::Expression::Splat {
             size: crate::VectorSize::Bi,

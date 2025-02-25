@@ -92,7 +92,7 @@ impl ExpressionTracer<'_> {
             // the initializer must precede `expr` in the arena, so we know we
             // have yet to visit the initializer, so it's not too late to mark
             // it.
-            Ex::Constant(handle) => {
+            Ex::GlobalConstant(handle) => {
                 self.constants_used.insert(handle);
                 let constant = &self.constants[handle];
                 self.types_used.insert(constant.ty);
@@ -271,7 +271,7 @@ impl ModuleMap {
             | Ex::RayQueryProceedResult => {}
 
             // Expressions that contain handles that need to be adjusted.
-            Ex::Constant(ref mut constant) => self.constants.adjust(constant),
+            Ex::GlobalConstant(ref mut constant) => self.constants.adjust(constant),
             Ex::Override(ref mut r#override) => self.overrides.adjust(r#override),
             Ex::ZeroValue(ref mut ty) => self.types.adjust(ty),
             Ex::Compose {

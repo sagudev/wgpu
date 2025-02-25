@@ -332,7 +332,7 @@ impl Context<'_> {
         let meta = self.expressions.get_span(expr);
         let h = match self.expressions[expr] {
             ref expr @ (Expression::Literal(_)
-            | Expression::Constant(_)
+            | Expression::GlobalConstant(_)
             | Expression::ZeroValue(_)) => {
                 self.module.global_expressions.append(expr.clone(), meta)
             }

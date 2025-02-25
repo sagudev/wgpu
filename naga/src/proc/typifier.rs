@@ -415,7 +415,7 @@ impl<'a> ResolveContext<'a> {
                 }
             },
             crate::Expression::Literal(lit) => TypeResolution::Value(lit.ty_inner()),
-            crate::Expression::Constant(h) => TypeResolution::Handle(self.constants[h].ty),
+            crate::Expression::GlobalConstant(h) => TypeResolution::Handle(self.constants[h].ty),
             crate::Expression::Override(h) => TypeResolution::Handle(self.overrides[h].ty),
             crate::Expression::ZeroValue(ty) => TypeResolution::Handle(ty),
             crate::Expression::Compose { ty, .. } => TypeResolution::Handle(ty),

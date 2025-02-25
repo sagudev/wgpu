@@ -358,7 +358,7 @@ impl super::Validator {
 
         let max_type = match *expression {
             crate::Expression::Literal(_) => None,
-            crate::Expression::Constant(constant) => {
+            crate::Expression::GlobalConstant(constant) => {
                 validate_constant(constant)?;
                 handle.check_dep(constants[constant].init)?;
                 None
@@ -413,7 +413,7 @@ impl super::Validator {
                 handle.check_dep(vector)?;
             }
             crate::Expression::Literal(_) => {}
-            crate::Expression::Constant(constant) => {
+            crate::Expression::GlobalConstant(constant) => {
                 validate_constant(constant)?;
             }
             crate::Expression::Override(r#override) => {
@@ -900,7 +900,7 @@ fn constant_deps() {
         nowhere,
     );
     let _self_referential_expr =
-        const_exprs.append(Expression::Constant(self_referential_const), nowhere);
+        const_exprs.append(Expression::GlobalConstant(self_referential_const), nowhere);
 
     for handle_and_expr in const_exprs.iter() {
         assert!(super::Validator::validate_const_expression_handles(

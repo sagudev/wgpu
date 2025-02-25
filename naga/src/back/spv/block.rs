@@ -428,7 +428,7 @@ impl BlockContext<'_> {
         let result_type_id = self.get_expression_type_id(&self.fun_info[expr_handle].ty);
         let id = match self.ir_function.expressions[expr_handle] {
             crate::Expression::Literal(literal) => self.writer.get_constant_scalar(literal),
-            crate::Expression::Constant(handle) => {
+            crate::Expression::GlobalConstant(handle) => {
                 let init = self.ir_module.constants[handle].init;
                 self.writer.constant_ids[init]
             }

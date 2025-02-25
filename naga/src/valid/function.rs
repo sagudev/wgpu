@@ -742,7 +742,7 @@ impl super::Validator {
                         use crate::Expression as Ex;
                         match context.expressions[handle] {
                             Ex::Literal(_)
-                            | Ex::Constant(_)
+                            | Ex::GlobalConstant(_)
                             | Ex::Override(_)
                             | Ex::ZeroValue(_)
                             | Ex::Compose { .. }

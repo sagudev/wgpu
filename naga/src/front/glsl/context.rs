@@ -204,7 +204,7 @@ impl<'a> Context<'a> {
             GlobalLookupKind::Constant(v, ty) => {
                 let span = self.module.constants.get_span(v);
                 (
-                    self.add_expression(Expression::Constant(v), span)?,
+                    self.add_expression(Expression::GlobalConstant(v), span)?,
                     false,
                     Some((v, ty)),
                 )
@@ -1012,8 +1012,10 @@ impl<'a> Context<'a> {
                     // pointer type which is required for dynamic indexing
                     if !constant_index {
                         if let Some((constant, ty)) = var.constant {
-                            let init = self
-                                .add_expression(Expression::Constant(constant), Span::default())?;
+                            let init = self.add_expression(
+                                Expression::GlobalConstant(constant),
+                                Span::default(),
+                            )?;
                             let local = self.locals.append(
                                 LocalVariable {
                                     name: None,
@@ -1036,7 +1038,7 @@ impl<'a> Context<'a> {
                 }
                 ExprPos::Rhs => {
                     if let Some((constant, _)) = self.is_const.then_some(var.constant).flatten() {
-                        self.add_expression(Expression::Constant(constant), meta)?
+                        self.add_expression(Expression::GlobalConstant(constant), meta)?
                     } else {
                         var.expr
                     }

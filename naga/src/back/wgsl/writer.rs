@@ -1293,7 +1293,7 @@ impl<W: Write> Writer<W> {
                     ));
                 }
             },
-            Expression::Constant(handle) => {
+            Expression::GlobalConstant(handle) => {
                 let constant = &module.constants[handle];
                 if constant.name.is_some() {
                     write!(self.out, "{}", self.names[&NameKey::Constant(handle)])?;
@@ -1361,7 +1361,7 @@ impl<W: Write> Writer<W> {
         // subscripting.
         match *expression {
             Expression::Literal(_)
-            | Expression::Constant(_)
+            | Expression::GlobalConstant(_)
             | Expression::ZeroValue(_)
             | Expression::Compose { .. }
             | Expression::Splat { .. } => {

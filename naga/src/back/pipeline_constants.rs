@@ -134,9 +134,9 @@ pub fn process_overrides<'a>(
                     }
                     new_h.unwrap()
                 };
-                Expression::Constant(c_h)
+                Expression::GlobalConstant(c_h)
             }
-            Expression::Constant(c_h) => {
+            Expression::GlobalConstant(c_h) => {
                 if adjusted_constant_initializers.insert(c_h) {
                     let init = &mut module.constants[c_h].init;
                     *init = adjusted_global_expressions[*init];
@@ -358,7 +358,7 @@ fn process_override(
 /// Replace all override expressions in `function` with fully-evaluated constants.
 ///
 /// Replace all `Expression::Override`s in `function`'s expression arena with
-/// the corresponding `Expression::Constant`s, as given in `override_map`.
+/// the corresponding `Expression::GlobalConstant`s, as given in `override_map`.
 /// Replace any expressions whose values are now known with their fully
 /// evaluated form.
 ///
@@ -400,7 +400,7 @@ fn process_function(
 
     for (old_h, mut expr, span) in expressions.drain() {
         if let Expression::Override(h) = expr {
-            expr = Expression::Constant(override_map[h]);
+            expr = Expression::GlobalConstant(override_map[h]);
         }
         adjust_expr(&adjusted_local_expressions, &mut expr);
         let h = evaluator.try_eval_and_append(expr, span)?;
@@ -622,7 +622,7 @@ fn adjust_expr(new_pos: &HandleVec<Expression, Handle<Expression>>, expr: &mut E
         | Expression::LocalVariable(_)
         | Expression::CallResult(_)
         | Expression::RayQueryProceedResult
-        | Expression::Constant(_)
+        | Expression::GlobalConstant(_)
         | Expression::Override(_)
         | Expression::ZeroValue(_)
         | Expression::AtomicResult {

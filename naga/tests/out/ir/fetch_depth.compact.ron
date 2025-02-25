@@ -125,7 +125,7 @@
                 GlobalVariable(2),
                 GlobalVariable(0),
                 GlobalVariable(1),
-                Constant(0),
+                GlobalConstant(0),
                 AccessIndex(
                     base: 1,
                     index: 0,

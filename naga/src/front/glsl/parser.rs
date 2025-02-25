@@ -432,7 +432,7 @@ impl DeclarationContext<'_, '_, '_> {
                 let global = frontend.add_global_var(self.ctx, decl)?;
                 let expr = match global {
                     GlobalOrConstant::Global(handle) => Expression::GlobalVariable(handle),
-                    GlobalOrConstant::Constant(handle) => Expression::Constant(handle),
+                    GlobalOrConstant::Constant(handle) => Expression::GlobalConstant(handle),
                 };
                 Ok(self.ctx.add_expression(expr, meta)?)
             }

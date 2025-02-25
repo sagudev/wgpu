@@ -1521,7 +1521,7 @@ impl Writer {
     ) -> Result<Word, Error> {
         let id = match ir_module.global_expressions[handle] {
             crate::Expression::Literal(literal) => self.get_constant_scalar(literal),
-            crate::Expression::Constant(constant) => {
+            crate::Expression::GlobalConstant(constant) => {
                 let constant = &ir_module.constants[constant];
                 self.constant_ids[constant.init]
             }

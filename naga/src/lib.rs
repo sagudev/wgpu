@@ -179,7 +179,7 @@ An override expression can be evaluated at pipeline creation time.
 [`AtomicResult`]: Expression::AtomicResult
 [`RayQueryProceedResult`]: Expression::RayQueryProceedResult
 [`CallResult`]: Expression::CallResult
-[`Constant`]: Expression::Constant
+[`Constant`]: Expression::GlobalConstant
 [`ZeroValue`]: Expression::ZeroValue
 [`Literal`]: Expression::Literal
 [`Derivative`]: Expression::Derivative
@@ -1384,7 +1384,7 @@ bitflags::bitflags! {
 /// [`Constant`] or [`Override`] expressions, which hold handles for their
 /// respective types.
 ///
-/// [`Constant`]: Expression::Constant
+/// [`Constant`]: Expression::GlobalConstant
 /// [`Override`]: Expression::Override
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -1394,7 +1394,7 @@ pub enum Expression {
     /// Literal.
     Literal(Literal),
     /// Constant value.
-    Constant(Handle<GlobalConstant>),
+    GlobalConstant(Handle<GlobalConstant>),
     /// Pipeline-overridable constant.
     Override(Handle<Override>),
     /// Zero value of a type.
@@ -2213,7 +2213,7 @@ pub struct Function {
     /// An [`Expression`] must occur before all other [`Expression`]s that use
     /// its value.
     ///
-    /// [`Constant`]: Expression::Constant
+    /// [`Constant`]: Expression::GlobalConstant
     /// [`Override`]: Expression::Override
     /// [`GlobalVariable`]: Expression::GlobalVariable
     pub expressions: Arena<Expression>,

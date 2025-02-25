@@ -2715,7 +2715,7 @@ impl<'a, W: Write> Writer<'a, W> {
                     }
                 }
             }
-            Expression::Constant(handle) => {
+            Expression::GlobalConstant(handle) => {
                 let constant = &self.module.constants[handle];
                 if constant.name.is_some() {
                     write!(self.out, "{}", self.names[&NameKey::Constant(handle)])?;
@@ -2774,7 +2774,7 @@ impl<'a, W: Write> Writer<'a, W> {
 
         match ctx.expressions[expr] {
             Expression::Literal(_)
-            | Expression::Constant(_)
+            | Expression::GlobalConstant(_)
             | Expression::ZeroValue(_)
             | Expression::Compose { .. }
             | Expression::Splat { .. } => {

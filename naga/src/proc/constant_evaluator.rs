@@ -415,7 +415,7 @@ impl ExpressionKindTracker {
     fn type_of_with_expr(&self, expr: &Expression) -> ExpressionKind {
         use crate::MathFunction as Mf;
         match *expr {
-            Expression::Literal(_) | Expression::ZeroValue(_) | Expression::Constant(_) => {
+            Expression::Literal(_) | Expression::ZeroValue(_) | Expression::GlobalConstant(_) => {
                 ExpressionKind::ImplConst
             }
             Expression::Override(_) => ExpressionKind::Override,
@@ -732,7 +732,7 @@ impl<'a> ConstantEvaluator<'a> {
         expr: Handle<Expression>,
     ) -> Result<Handle<Expression>, ConstantEvaluatorError> {
         match self.expressions[expr] {
-            Expression::Constant(c) => {
+            Expression::GlobalConstant(c) => {
                 // Are we working in a function's expression arena, or the
                 // module's constant expression arena?
                 if let Some(function_local_data) = self.function_local_data() {
@@ -851,13 +851,13 @@ impl<'a> ConstantEvaluator<'a> {
     ) -> Result<Handle<Expression>, ConstantEvaluatorError> {
         log::trace!("try_eval_and_append: {:?}", expr);
         match *expr {
-            Expression::Constant(c) if self.is_global_arena() => {
+            Expression::GlobalConstant(c) if self.is_global_arena() => {
                 // "See through" the constant and use its initializer.
                 // This is mainly done to avoid having constants pointing to other constants.
                 Ok(self.constants[c].init)
             }
             Expression::Override(_) => Err(ConstantEvaluatorError::Override),
-            Expression::Literal(_) | Expression::ZeroValue(_) | Expression::Constant(_) => {
+            Expression::Literal(_) | Expression::ZeroValue(_) | Expression::GlobalConstant(_) => {
                 self.register_evaluated_expr(expr.clone(), span)
             }
             Expression::Compose { ty, ref components } => {
@@ -2158,7 +2158,7 @@ impl<'a> ConstantEvaluator<'a> {
         let span = expressions.get_span(expr);
         match expressions[expr] {
             ref expr @ (Expression::Literal(_)
-            | Expression::Constant(_)
+            | Expression::GlobalConstant(_)
             | Expression::ZeroValue(_)) => self.register_evaluated_expr(expr.clone(), span),
             Expression::Compose { ty, ref components } => {
                 let mut components = components.clone();
@@ -2232,7 +2232,7 @@ impl<'a> ConstantEvaluator<'a> {
         use crate::Expression as Ex;
         let resolution = match self.expressions[expr] {
             Ex::Literal(ref literal) => Tr::Value(literal.ty_inner()),
-            Ex::Constant(c) => Tr::Handle(self.constants[c].ty),
+            Ex::GlobalConstant(c) => Tr::Handle(self.constants[c].ty),
             Ex::ZeroValue(ty) | Ex::Compose { ty, .. } => Tr::Handle(ty),
             Ex::Splat { size, value } => {
                 let Tr::Value(TypeInner::Scalar(scalar)) = self.resolve_type(value)? else {
@@ -2606,8 +2606,9 @@ mod tests {
             Default::default(),
         );
 
-        let expr = global_expressions.append(Expression::Constant(h), Default::default());
-        let expr1 = global_expressions.append(Expression::Constant(vec_h), Default::default());
+        let expr = global_expressions.append(Expression::GlobalConstant(h), Default::default());
+        let expr1 =
+            global_expressions.append(Expression::GlobalConstant(vec_h), Default::default());
 
         let expr2 = Expression::Unary {
             op: UnaryOperator::Negate,
@@ -2703,7 +2704,7 @@ mod tests {
             Default::default(),
         );
 
-        let expr = global_expressions.append(Expression::Constant(h), Default::default());
+        let expr = global_expressions.append(Expression::GlobalConstant(h), Default::default());
 
         let root = Expression::As {
             expr,
@@ -2828,7 +2829,7 @@ mod tests {
             Default::default(),
         );
 
-        let base = global_expressions.append(Expression::Constant(h), Default::default());
+        let base = global_expressions.append(Expression::GlobalConstant(h), Default::default());
 
         let expression_kind_tracker = &mut ExpressionKindTracker::from_arena(&global_expressions);
         let mut solver = ConstantEvaluator {
@@ -2922,7 +2923,7 @@ mod tests {
             Default::default(),
         );
 
-        let h_expr = global_expressions.append(Expression::Constant(h), Default::default());
+        let h_expr = global_expressions.append(Expression::GlobalConstant(h), Default::default());
 
         let expression_kind_tracker = &mut ExpressionKindTracker::from_arena(&global_expressions);
         let mut solver = ConstantEvaluator {
@@ -3005,7 +3006,7 @@ mod tests {
             Default::default(),
         );
 
-        let h_expr = global_expressions.append(Expression::Constant(h), Default::default());
+        let h_expr = global_expressions.append(Expression::GlobalConstant(h), Default::default());
 
         let expression_kind_tracker = &mut ExpressionKindTracker::from_arena(&global_expressions);
         let mut solver = ConstantEvaluator {

@@ -267,7 +267,7 @@ impl crate::Expression {
     pub const fn needs_pre_emit(&self) -> bool {
         match *self {
             Self::Literal(_)
-            | Self::Constant(_)
+            | Self::GlobalConstant(_)
             | Self::Override(_)
             | Self::ZeroValue(_)
             | Self::FunctionArgument(_)
@@ -292,7 +292,7 @@ impl crate::Expression {
     /// [`ResolveContext`]: crate::proc::ResolveContext
     pub const fn is_dynamic_index(&self) -> bool {
         match *self {
-            Self::Literal(_) | Self::ZeroValue(_) | Self::Constant(_) => false,
+            Self::Literal(_) | Self::ZeroValue(_) | Self::GlobalConstant(_) => false,
             _ => true,
         }
     }
@@ -475,7 +475,7 @@ impl GlobalCtx<'_> {
             }
         }
         match arena[handle] {
-            crate::Expression::Constant(c) => {
+            crate::Expression::GlobalConstant(c) => {
                 get(*self, self.constants[c].init, self.global_expressions)
             }
             _ => get(*self, handle, arena),

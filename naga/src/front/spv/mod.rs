@@ -292,7 +292,7 @@ enum Constant {
 impl Constant {
     const fn to_expr(&self) -> crate::Expression {
         match *self {
-            Self::Constant(c) => crate::Expression::Constant(c),
+            Self::Constant(c) => crate::Expression::GlobalConstant(c),
             Self::Override(o) => crate::Expression::Override(o),
         }
     }
@@ -1709,11 +1709,11 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
                         let index_expr_handle = get_expr_handle!(access_id, &index_expr);
                         let index_expr_data = &ctx.expressions[index_expr.handle];
                         let index_maybe = match *index_expr_data {
-                            crate::Expression::Constant(const_handle) => Some(
+                            crate::Expression::GlobalConstant(const_handle) => Some(
                                 ctx.gctx()
                                     .eval_expr_to_u32(ctx.module.constants[const_handle].init)
                                     .map_err(|_| {
-                                        Error::InvalidAccess(crate::Expression::Constant(
+                                        Error::InvalidAccess(crate::Expression::GlobalConstant(
                                             const_handle,
                                         ))
                                     })?,
@@ -4413,7 +4413,9 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
         // register constants
         for (&id, con) in self.lookup_constant.iter() {
             let (expr, span) = match con.inner {
-                Constant::Constant(c) => (crate::Expression::Constant(c), constants.get_span(c)),
+                Constant::Constant(c) => {
+                    (crate::Expression::GlobalConstant(c), constants.get_span(c))
+                }
                 Constant::Override(o) => (crate::Expression::Override(o), overrides.get_span(o)),
             };
             let handle = expressions.append(expr, span);

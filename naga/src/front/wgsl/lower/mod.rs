@@ -340,7 +340,7 @@ pub enum ExpressionContextType<'temp, 'out> {
 ///   by calling [`as_const`], but there's no way to go in the other
 ///   direction, producing a runtime context from a constant one. This
 ///   is because runtime expressions can refer to constant
-///   expressions, via [`Expression::Constant`], but constant
+///   expressions, via [`Expression::GlobalConstant`], but constant
 ///   expressions can't refer to a function's expressions.
 ///
 /// Not to be confused with `wgsl::parse::ExpressionContext`, which is
@@ -353,7 +353,7 @@ pub enum ExpressionContextType<'temp, 'out> {
 /// [`Constant`]: ExpressionContextType::Constant
 /// [`naga::Module`]: crate::Module
 /// [`as_const`]: ExpressionContext::as_const
-/// [`Expression::Constant`]: crate::Expression::Constant
+/// [`Expression::GlobalConstant`]: crate::Expression::GlobalConstant
 pub struct ExpressionContext<'source, 'temp, 'out> {
     // WGSL AST values.
     ast_expressions: &'temp Arena<ast::Expression<'source>>,
@@ -1961,7 +1961,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                         }
                     }
                     LoweredGlobalDecl::Const(handle) => {
-                        Typed::Plain(crate::Expression::Constant(handle))
+                        Typed::Plain(crate::Expression::GlobalConstant(handle))
                     }
                     LoweredGlobalDecl::Override(handle) => {
                         Typed::Plain(crate::Expression::Override(handle))

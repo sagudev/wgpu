@@ -194,8 +194,8 @@
                 GlobalVariable(2),
                 GlobalVariable(0),
                 GlobalVariable(1),
-                Constant(0),
-                Constant(1),
+                GlobalConstant(0),
+                GlobalConstant(1),
                 AccessIndex(
                     base: 1,
                     index: 0,

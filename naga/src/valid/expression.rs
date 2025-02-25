@@ -212,7 +212,7 @@ impl super::Validator {
             E::Literal(literal) => {
                 self.validate_literal(literal)?;
             }
-            E::Constant(_) | E::ZeroValue(_) => {}
+            E::GlobalConstant(_) | E::ZeroValue(_) => {}
             E::Compose { ref components, ty } => {
                 validate_compose(
                     ty,
@@ -370,7 +370,7 @@ impl super::Validator {
                 self.validate_literal(literal)?;
                 ShaderStages::all()
             }
-            E::Constant(_) | E::Override(_) | E::ZeroValue(_) => ShaderStages::all(),
+            E::GlobalConstant(_) | E::Override(_) | E::ZeroValue(_) => ShaderStages::all(),
             E::Compose { ref components, ty } => {
                 validate_compose(
                     ty,

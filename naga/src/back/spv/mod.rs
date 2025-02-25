@@ -683,7 +683,7 @@ impl ExpressionConstnessTracker {
             let insert = match *expr {
                 crate::Expression::Literal(_)
                 | crate::Expression::ZeroValue(_)
-                | crate::Expression::Constant(_) => true,
+                | crate::Expression::GlobalConstant(_) => true,
                 crate::Expression::Compose { ref components, .. } => {
                     components.iter().all(|&h| inner.contains(h))
                 }

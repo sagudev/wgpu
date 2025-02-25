@@ -594,7 +594,9 @@ impl FunctionInfo {
                 non_uniform_result: self.add_ref(vector),
                 requirements: UniformityRequirements::empty(),
             },
-            E::Literal(_) | E::Constant(_) | E::Override(_) | E::ZeroValue(_) => Uniformity::new(),
+            E::Literal(_) | E::GlobalConstant(_) | E::Override(_) | E::ZeroValue(_) => {
+                Uniformity::new()
+            }
             E::Compose { ref components, .. } => {
                 let non_uniform_result = components
                     .iter()

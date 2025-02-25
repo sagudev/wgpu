@@ -1478,7 +1478,7 @@ impl<W: Write> Writer<W> {
                     ));
                 }
             },
-            crate::Expression::Constant(handle) => {
+            crate::Expression::GlobalConstant(handle) => {
                 let constant = &module.constants[handle];
                 if constant.name.is_some() {
                     write!(self.out, "{}", self.names[&NameKey::Constant(handle)])?;
@@ -1585,7 +1585,7 @@ impl<W: Write> Writer<W> {
         log::trace!("expression {:?} = {:?}", expr_handle, expression);
         match *expression {
             crate::Expression::Literal(_)
-            | crate::Expression::Constant(_)
+            | crate::Expression::GlobalConstant(_)
             | crate::Expression::ZeroValue(_)
             | crate::Expression::Compose { .. }
             | crate::Expression::Splat { .. } => {
