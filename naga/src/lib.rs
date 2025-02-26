@@ -938,6 +938,22 @@ pub struct GlobalConstant {
     pub init: Handle<Expression>,
 }
 
+/// Global Constant value.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+pub struct LocalConstant {
+    pub name: String,
+    pub ty: Handle<Type>,
+
+    /// The value of the constant.
+    ///
+    /// This [`Handle`] refers to [`Function::expressions`],
+    /// not to [`Module::global_expressions`]
+    pub init: Handle<Expression>,
+}
+
 /// Describes how an input/output variable is to be bound.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -1393,6 +1409,8 @@ bitflags::bitflags! {
 pub enum Expression {
     /// Literal.
     Literal(Literal),
+    /// Constant value.
+    LocalConstant(Handle<LocalConstant>),
     /// Constant value.
     GlobalConstant(Handle<GlobalConstant>),
     /// Pipeline-overridable constant.
