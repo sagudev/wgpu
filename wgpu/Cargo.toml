@@ -29,22 +29,22 @@ ignored = ["cfg_aliases"]
 [lib]
 
 [features]
-default = ["dx12", "metal", "gles", "vulkan", "wgsl", "webgpu", "core"]
+default = ["dx12", "metal", "gles", "vulkan", "wgsl", "webgpu"]
 
 #! ### Backends
 # --------------------------------------------------------------------
 
 ## Enables the DX12 backend on Windows.
-dx12 = ["wgpu-core/dx12"]
+dx12 = ["wgpu-core?/dx12"]
 
 ## Enables the Metal backend on macOS & iOS.
-metal = ["wgpu-core/metal"]
+metal = ["wgpu-core?/metal"]
 
 ## Enables the Vulkan backend on Windows, Linux, and Android.
-vulkan = ["wgpu-core/vulkan"]
+vulkan = ["wgpu-core?/vulkan"]
 
 ## Enables the OpenGL/GLES backend on Windows, Linux, Android, and Emscripten.
-gles = ["wgpu-core/gles"]
+gles = ["wgpu-core?/gles"]
 
 ## Enables the WebGPU backend on WebAssembly.
 webgpu = [
@@ -62,10 +62,10 @@ webgpu = [
 #! ### Conditional Backends
 
 ## Enables the GLES backend on macOS only for use with [ANGLE](https://github.com/google/angle).
-angle = ["wgpu-core/angle"]
+angle = ["wgpu-core?/angle"]
 
 ## Enables the Vulkan backend on macOS & iOS only for use with [MoltenVK](https://github.com/KhronosGroup/MoltenVK).
-vulkan-portability = ["wgpu-core/vulkan-portability"]
+vulkan-portability = ["wgpu-core?/vulkan-portability"]
 
 ## Enables the GLES backend on WebAssembly only.
 webgl = ["wgpu-core/webgl", "dep:wgpu-hal", "dep:smallvec"]
@@ -84,12 +84,6 @@ noop = ["wgpu-core/noop"]
 
 ## Enable support for creating and loading custom wgpu backends
 custom = []
-
-## Enables wgpu-core if platform supports it
-##
-## This exist so we can allow users to bring their own contexts
-## and not need to get wgpu-core
-core = ["dep:wgpu-core"]
 
 #! ### Shading language support
 # --------------------------------------------------------------------

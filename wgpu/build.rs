@@ -32,9 +32,9 @@ fn main() {
 
         wgpu_core: {
             any(
-                feature = "core",
                 // `wgpu_core` is implied if any backend other than WebGPU is enabled.
-                webgl, dx12, metal, vulkan, gles, noop
+                all(native, any(dx12, metal, vulkan, gles))
+                webgl, noop
             )
         },
 
