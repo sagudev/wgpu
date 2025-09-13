@@ -268,6 +268,256 @@ gen_component_wise_extractor! {
     ],
 }
 
+macro_rules! match_literal_vector {
+    ($($x:expr),* => $( $( ($($mat:ident($arg:ident)),*) -> $ret:path )|+ => $body:expr ),*,_ => $body2:expr) => {
+        match $($x),* {
+            $(
+            $(
+                ($( LiteralVector::$mat($arg) ),*) => $ret($body),
+            )*
+            )*
+            _ => $body2
+        }
+    };
+    ($($x:expr),* => $( $( ($($mat:ident($arg:ident)),*) )|+ => $body:expr ),*,_ => $body2:expr) => {
+        match $($x),* {
+            $(
+            $(
+                ($( LiteralVector::$mat($arg) ),*) => $body,
+            )*
+            )*
+            _ => $body2
+        }
+    };
+    ($($x:expr),* => $( $( $mat:ident$arg:tt -> $ret:path )|+ => $body:expr ),*,_ => $body2:expr) => {
+        match $($x),* {
+            $(
+            $(
+                LiteralVector::$mat$arg => $ret($body),
+            )*
+            )*
+            _ => $body2
+        }
+    };
+    ($($x:expr),* => $( $( $mat:ident$arg:tt )|+ => $body:expr ),*) => {
+        match $($x),* {
+            $(
+            $(
+                LiteralVector::$mat$arg => $body,
+            )*
+            )*
+        }
+    };
+}
+
+/// Vectors with a concrete element type.
+#[derive(Debug)]
+enum LiteralVector {
+    F64(ArrayVec<f64, { crate::VectorSize::MAX }>),
+    F32(ArrayVec<f32, { crate::VectorSize::MAX }>),
+    F16(ArrayVec<f16, { crate::VectorSize::MAX }>),
+    U32(ArrayVec<u32, { crate::VectorSize::MAX }>),
+    I32(ArrayVec<i32, { crate::VectorSize::MAX }>),
+    U64(ArrayVec<u64, { crate::VectorSize::MAX }>),
+    I64(ArrayVec<i64, { crate::VectorSize::MAX }>),
+    Bool(ArrayVec<bool, { crate::VectorSize::MAX }>),
+    AbstractInt(ArrayVec<i64, { crate::VectorSize::MAX }>),
+    AbstractFloat(ArrayVec<f64, { crate::VectorSize::MAX }>),
+}
+
+impl LiteralVector {
+    #[allow(clippy::missing_const_for_fn, reason = "MSRV")]
+    fn len(&self) -> usize {
+        match_literal_vector!(*self =>
+            F64(ref v)
+            | F32(ref v)
+            | F16(ref v)
+            | U32(ref v)
+            | I32(ref v)
+            | U64(ref v)
+            | I64(ref v)
+            | Bool(ref v)
+            | AbstractInt(ref v)
+            | AbstractFloat(ref v) => v.len()
+        )
+    }
+
+    /// Creates [`LiteralVector`] of size 1 from single [`Literal`]
+    fn from_literal(literal: Literal) -> Self {
+        match literal {
+            Literal::F64(e) => Self::F64(ArrayVec::from_iter(iter::once(e))),
+            Literal::F32(e) => Self::F32(ArrayVec::from_iter(iter::once(e))),
+            Literal::U32(e) => Self::U32(ArrayVec::from_iter(iter::once(e))),
+            Literal::I32(e) => Self::I32(ArrayVec::from_iter(iter::once(e))),
+            Literal::U64(e) => Self::U64(ArrayVec::from_iter(iter::once(e))),
+            Literal::I64(e) => Self::I64(ArrayVec::from_iter(iter::once(e))),
+            Literal::Bool(e) => Self::Bool(ArrayVec::from_iter(iter::once(e))),
+            Literal::AbstractInt(e) => Self::AbstractInt(ArrayVec::from_iter(iter::once(e))),
+            Literal::AbstractFloat(e) => Self::AbstractFloat(ArrayVec::from_iter(iter::once(e))),
+            Literal::F16(e) => Self::F16(ArrayVec::from_iter(iter::once(e))),
+        }
+    }
+
+    /// Creates [`LiteralVector`] from [`ArrayVec`] of [`Literal`]s.
+    /// Returns error if components types do not match.
+    /// # Panics
+    /// Panics if vector is empty
+    fn from_literal_vec(
+        components: ArrayVec<Literal, { crate::VectorSize::MAX }>,
+    ) -> Result<Self, ConstantEvaluatorError> {
+        assert!(!components.is_empty());
+        Ok(match components[0] {
+            Literal::I32(_) => Self::I32(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::I32(v) => Ok(v),
+                        // TODO: should we handle abstract int here?
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::U32(_) => Self::U32(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::U32(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::I64(_) => Self::I64(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::I64(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::U64(_) => Self::U64(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::U64(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::F32(_) => Self::F32(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::F32(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::F64(_) => Self::F64(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::F64(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::Bool(_) => Self::Bool(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::Bool(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::AbstractInt(_) => Self::AbstractInt(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::AbstractInt(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::AbstractFloat(_) => Self::AbstractFloat(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::AbstractFloat(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            Literal::F16(_) => Self::F16(
+                components
+                    .iter()
+                    .map(|l| match l {
+                        &Literal::F16(v) => Ok(v),
+                        _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+        })
+    }
+
+    /// Returns [`ArrayVec`] of [`Literal`]s
+    fn to_literal_vec(&self) -> ArrayVec<Literal, { crate::VectorSize::MAX }> {
+        match *self {
+            LiteralVector::F64(ref v) => v.iter().map(|e| (Literal::F64(*e))).collect(),
+            LiteralVector::F32(ref v) => v.iter().map(|e| (Literal::F32(*e))).collect(),
+            LiteralVector::F16(ref v) => v.iter().map(|e| (Literal::F16(*e))).collect(),
+            LiteralVector::U32(ref v) => v.iter().map(|e| (Literal::U32(*e))).collect(),
+            LiteralVector::I32(ref v) => v.iter().map(|e| (Literal::I32(*e))).collect(),
+            LiteralVector::U64(ref v) => v.iter().map(|e| (Literal::U64(*e))).collect(),
+            LiteralVector::I64(ref v) => v.iter().map(|e| (Literal::I64(*e))).collect(),
+            LiteralVector::Bool(ref v) => v.iter().map(|e| (Literal::Bool(*e))).collect(),
+            LiteralVector::AbstractInt(ref v) => {
+                v.iter().map(|e| (Literal::AbstractInt(*e))).collect()
+            }
+            LiteralVector::AbstractFloat(ref v) => {
+                v.iter().map(|e| (Literal::AbstractFloat(*e))).collect()
+            }
+        }
+    }
+
+    /// Puts self into eval's expressions arena and returns handle to it
+    fn register_as_evaluated_expr(
+        &self,
+        eval: &mut ConstantEvaluator<'_>,
+        span: Span,
+    ) -> Result<Handle<Expression>, ConstantEvaluatorError> {
+        let lit_vec = self.to_literal_vec();
+        assert!(!lit_vec.is_empty());
+        let expr = if lit_vec.len() == 1 {
+            Expression::Literal(lit_vec[0])
+        } else {
+            Expression::Compose {
+                ty: eval.types.insert(
+                    Type {
+                        name: None,
+                        inner: TypeInner::Vector {
+                            size: match lit_vec.len() {
+                                2 => crate::VectorSize::Bi,
+                                3 => crate::VectorSize::Tri,
+                                4 => crate::VectorSize::Quad,
+                                _ => unreachable!(),
+                            },
+                            scalar: lit_vec[0].scalar(),
+                        },
+                    },
+                    Span::UNDEFINED,
+                ),
+                components: lit_vec
+                    .iter()
+                    .map(|&l| eval.register_evaluated_expr(Expression::Literal(l), span))
+                    .collect::<Result<_, _>>()?,
+            }
+        };
+        eval.register_evaluated_expr(expr, span)
+    }
+}
+
 #[derive(Debug)]
 enum Behavior<'a> {
     Wgsl(WgslRestrictions<'a>),
@@ -1262,6 +1512,99 @@ impl<'a> ConstantEvaluator<'a> {
                 })
             }
 
+            // geometry
+            crate::MathFunction::Dot => {
+                let e1 = self.extract_vec(arg, false)?;
+                let e2 = self.extract_vec(arg1.unwrap(), false)?;
+                if e1.len() != e2.len() {
+                    return Err(ConstantEvaluatorError::InvalidMathArg);
+                }
+
+                fn float_dot<F>(a: &[F], b: &[F]) -> F
+                where
+                    F: core::ops::Mul<F>,
+                    F: num_traits::Float + iter::Sum,
+                {
+                    a.iter().zip(b.iter()).map(|(&aa, &bb)| aa * bb).sum()
+                }
+
+                fn int_dot<P>(a: &[P], b: &[P]) -> Result<P, ConstantEvaluatorError>
+                where
+                    P: num_traits::PrimInt + num_traits::CheckedAdd + num_traits::CheckedMul,
+                {
+                    a.iter()
+                        .zip(b.iter())
+                        .map(|(&aa, bb)| aa.checked_mul(bb))
+                        .try_fold(P::zero(), |acc, x| {
+                            if let Some(x) = x {
+                                acc.checked_add(&x)
+                            } else {
+                                None
+                            }
+                        })
+                        .ok_or(ConstantEvaluatorError::Overflow(
+                            "in dot built-in".to_string(),
+                        ))
+                }
+
+                LiteralVector::from_literal(match_literal_vector! {(e1, e2) =>
+                    (AbstractFloat(e1), AbstractFloat(e2)) -> Literal::AbstractFloat
+                    | (F32(e1), F32(e2)) -> Literal::F32
+                        => float_dot(&e1, &e2),
+                    (AbstractInt(e1), AbstractInt(e2)) -> Literal::AbstractInt
+                    | (I32(e1), I32(e2)) -> Literal::I32
+                    | (U32(e1), U32(e2)) -> Literal::U32
+                        => int_dot(&e1, &e2)?,
+                    _ => return Err(ConstantEvaluatorError::InvalidMathArg)
+                })
+                .register_as_evaluated_expr(self, span)
+            }
+            crate::MathFunction::Length => {
+                let e1 = self.extract_vec(arg, true)?;
+
+                fn float_length<F>(e: &[F]) -> F
+                where
+                    F: core::ops::Mul<F>,
+                    F: num_traits::Float + iter::Sum,
+                {
+                    e.iter().map(|&ei| ei * ei).sum::<F>().sqrt()
+                }
+
+                LiteralVector::from_literal(match_literal_vector! {e1 =>
+                    AbstractFloat(e1) -> Literal::AbstractFloat
+                    | F32(e1) -> Literal::F32
+                        => float_length(&e1),
+                    _ => return Err(ConstantEvaluatorError::InvalidMathArg)
+                })
+                .register_as_evaluated_expr(self, span)
+            }
+            crate::MathFunction::Distance => {
+                let e1 = self.extract_vec(arg, true)?;
+                let e2 = self.extract_vec(arg1.unwrap(), true)?;
+                if e1.len() != e2.len() {
+                    return Err(ConstantEvaluatorError::InvalidMathArg);
+                }
+
+                fn float_distance<F>(a: &[F], b: &[F]) -> F
+                where
+                    F: core::ops::Mul<F>,
+                    F: num_traits::Float + iter::Sum + core::ops::Sub,
+                {
+                    a.iter()
+                        .zip(b.iter())
+                        .map(|(&aa, &bb)| aa - bb)
+                        .map(|ei| ei * ei)
+                        .sum::<F>()
+                        .sqrt()
+                }
+                LiteralVector::from_literal(match_literal_vector! {(e1, e2) =>
+                    (AbstractFloat(e1), AbstractFloat(e2)) -> Literal::AbstractFloat
+                    | (F32(e1), F32(e2)) -> Literal::F32
+                        => float_distance(&e1, &e2),
+                    _ => return Err(ConstantEvaluatorError::InvalidMathArg)
+                })
+                .register_as_evaluated_expr(self, span)
+            }
             // computational
             crate::MathFunction::Sign => {
                 component_wise_signed!(self, span, [arg], |e| { Ok([e.signum()]) })
@@ -1350,10 +1693,7 @@ impl<'a> ConstantEvaluator<'a> {
             | crate::MathFunction::Modf
             | crate::MathFunction::Frexp
             | crate::MathFunction::Ldexp
-            | crate::MathFunction::Dot
             | crate::MathFunction::Outer
-            | crate::MathFunction::Distance
-            | crate::MathFunction::Length
             | crate::MathFunction::Normalize
             | crate::MathFunction::FaceForward
             | crate::MathFunction::Reflect
@@ -1430,8 +1770,8 @@ impl<'a> ConstantEvaluator<'a> {
     ) -> Result<Handle<Expression>, ConstantEvaluatorError> {
         use Literal as Li;
 
-        let (a, ty) = self.extract_vec::<3>(a)?;
-        let (b, _) = self.extract_vec::<3>(b)?;
+        let (a, ty) = self.extract_vec_with_size::<3>(a)?;
+        let (b, _) = self.extract_vec_with_size::<3>(b)?;
 
         let product = match (a, b) {
             (
@@ -1498,7 +1838,7 @@ impl<'a> ConstantEvaluator<'a> {
     /// values.
     ///
     /// Also return the type handle from the `Compose` expression.
-    fn extract_vec<const N: usize>(
+    fn extract_vec_with_size<const N: usize>(
         &mut self,
         expr: Handle<Expression>,
     ) -> Result<([Literal; N], Handle<Type>), ConstantEvaluatorError> {
@@ -1520,6 +1860,39 @@ impl<'a> ConstantEvaluator<'a> {
         }
 
         Ok((value, ty))
+    }
+
+    /// Extract the values of a `vecN` from `expr`.
+    ///
+    /// Return the value of `expr`, whose type is `vecN<S>` for some
+    /// vector size `N` and scalar `S`, as an array of `N` [`Literal`]
+    /// values.
+    ///
+    /// Also return the type handle from the `Compose` expression.
+    fn extract_vec(
+        &mut self,
+        expr: Handle<Expression>,
+        allow_single: bool,
+    ) -> Result<LiteralVector, ConstantEvaluatorError> {
+        let span = self.expressions.get_span(expr);
+        let expr = self.eval_zero_value_and_splat(expr, span)?;
+
+        match self.expressions[expr] {
+            Expression::Literal(literal) if allow_single => {
+                Ok(LiteralVector::from_literal(literal))
+            }
+            Expression::Compose { ty, ref components } => {
+                let components: ArrayVec<Literal, { crate::VectorSize::MAX }> =
+                    crate::proc::flatten_compose(ty, components, self.expressions, self.types)
+                        .map(|expr| match self.expressions[expr] {
+                            Expression::Literal(l) => Ok(l),
+                            _ => Err(ConstantEvaluatorError::InvalidMathArg),
+                        })
+                        .collect::<Result<_, ConstantEvaluatorError>>()?;
+                LiteralVector::from_literal_vec(components)
+            }
+            _ => Err(ConstantEvaluatorError::InvalidMathArg),
+        }
     }
 
     fn array_length(
