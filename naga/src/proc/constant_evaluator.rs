@@ -268,48 +268,6 @@ gen_component_wise_extractor! {
     ],
 }
 
-macro_rules! match_literal_vector {
-    ($($x:expr),* => $( $( ($($mat:ident($arg:ident)),*) -> $ret:path )|+ => $body:expr ),*,_ => $body2:expr) => {
-        match $($x),* {
-            $(
-            $(
-                ($( LiteralVector::$mat($arg) ),*) => $ret($body),
-            )*
-            )*
-            _ => $body2
-        }
-    };
-    ($($x:expr),* => $( $( ($($mat:ident($arg:ident)),*) )|+ => $body:expr ),*,_ => $body2:expr) => {
-        match $($x),* {
-            $(
-            $(
-                ($( LiteralVector::$mat($arg) ),*) => $body,
-            )*
-            )*
-            _ => $body2
-        }
-    };
-    ($($x:expr),* => $( $( $mat:ident$arg:tt -> $ret:path )|+ => $body:expr ),*,_ => $body2:expr) => {
-        match $($x),* {
-            $(
-            $(
-                LiteralVector::$mat$arg => $ret($body),
-            )*
-            )*
-            _ => $body2
-        }
-    };
-    ($($x:expr),* => $( $( $mat:ident$arg:tt )|+ => $body:expr ),*) => {
-        match $($x),* {
-            $(
-            $(
-                LiteralVector::$mat$arg => $body,
-            )*
-            )*
-        }
-    };
-}
-
 /// Vectors with a concrete element type.
 #[derive(Debug)]
 enum LiteralVector {
@@ -328,18 +286,18 @@ enum LiteralVector {
 impl LiteralVector {
     #[allow(clippy::missing_const_for_fn, reason = "MSRV")]
     fn len(&self) -> usize {
-        match_literal_vector!(*self =>
-            F64(ref v)
-            | F32(ref v)
-            | F16(ref v)
-            | U32(ref v)
-            | I32(ref v)
-            | U64(ref v)
-            | I64(ref v)
-            | Bool(ref v)
-            | AbstractInt(ref v)
-            | AbstractFloat(ref v) => v.len()
-        )
+        match self {
+            LiteralVector::F64(v) => v.len(),
+            LiteralVector::F32(v) => v.len(),
+            LiteralVector::F16(v) => v.len(),
+            LiteralVector::U32(v) => v.len(),
+            LiteralVector::I32(v) => v.len(),
+            LiteralVector::U64(v) => v.len(),
+            LiteralVector::I64(v) => v.len(),
+            LiteralVector::Bool(v) => v.len(),
+            LiteralVector::AbstractInt(v) => v.len(),
+            LiteralVector::AbstractFloat(v) => v.len(),
+        }
     }
 
     /// Creates [`LiteralVector`] of size 1 from single [`Literal`]
@@ -516,6 +474,36 @@ impl LiteralVector {
         };
         eval.register_evaluated_expr(expr, span)
     }
+}
+
+/// ```rust
+/// fold_literal_vector!(match v {
+///     F16 => |v| {v.sum()},
+///     Integer => |v| {v.sum()},
+///     U32 => |v| -> I32 {v.sum()}, // optionally override return type
+/// })
+/// ```
+///
+/// ```rust
+/// fold_literal_vector!(match (e1, e2) {
+///     F16 => |e1, e2| {e1+e2},
+///     Integer => |e1, e2| {e1+e2},
+///     U32 => |e1, e2| -> I32 {e1+e2}, // optionally override return type
+/// })
+/// ```
+///
+/// `Float` expands to `F16`, `F32`, `F64` and `AbstractFloat`.
+/// `Integer` expands to `I32`, `I64`, `U32`, `U64` and `AbstractInt`.
+///
+macro_rules! fold_literal_vector {
+    (match $lit_vec:expr {{$( $ty:ident => |$var:ident| -> $ret:ident {$body:expr} ),+ $(,)?}}) => {
+        match $lit_vec {
+            $(
+                LiteralVector::$ty(ref $var) => { Literal::$ret($body) }
+            )+
+            _ => Err(ConstantEvaluatorError::InvalidMathArg),
+        }
+    };
 }
 
 #[derive(Debug)]
@@ -1547,17 +1535,11 @@ impl<'a> ConstantEvaluator<'a> {
                         ))
                 }
 
-                LiteralVector::from_literal(match_literal_vector! {(e1, e2) =>
-                    (AbstractFloat(e1), AbstractFloat(e2)) -> Literal::AbstractFloat
-                    | (F32(e1), F32(e2)) -> Literal::F32
-                        => float_dot(&e1, &e2),
-                    (AbstractInt(e1), AbstractInt(e2)) -> Literal::AbstractInt
-                    | (I32(e1), I32(e2)) -> Literal::I32
-                    | (U32(e1), U32(e2)) -> Literal::U32
-                        => int_dot(&e1, &e2)?,
-                    _ => return Err(ConstantEvaluatorError::InvalidMathArg)
-                })
-                .register_as_evaluated_expr(self, span)
+                let result = fold_literal_vector!(match (e1, e2) {
+                    Float => |e1, e2| { float_dot(&e1, &e2) },
+                    Integer => |e1, e2| { int_dot(&e1, &e2) },
+                });
+                self.register_evaluated_expr(result, span)
             }
             crate::MathFunction::Length => {
                 let e1 = self.extract_vec(arg, true)?;
@@ -1570,13 +1552,10 @@ impl<'a> ConstantEvaluator<'a> {
                     e.iter().map(|&ei| ei * ei).sum::<F>().sqrt()
                 }
 
-                LiteralVector::from_literal(match_literal_vector! {e1 =>
-                    AbstractFloat(e1) -> Literal::AbstractFloat
-                    | F32(e1) -> Literal::F32
-                        => float_length(&e1),
-                    _ => return Err(ConstantEvaluatorError::InvalidMathArg)
-                })
-                .register_as_evaluated_expr(self, span)
+                let literal = fold_literal_vector!(match e1 {
+                    Float => |e1| float_length(&e1),
+                });
+                self.register_evaluated_expr(literal, span)
             }
             crate::MathFunction::Distance => {
                 let e1 = self.extract_vec(arg, true)?;
@@ -1597,13 +1576,10 @@ impl<'a> ConstantEvaluator<'a> {
                         .sum::<F>()
                         .sqrt()
                 }
-                LiteralVector::from_literal(match_literal_vector! {(e1, e2) =>
-                    (AbstractFloat(e1), AbstractFloat(e2)) -> Literal::AbstractFloat
-                    | (F32(e1), F32(e2)) -> Literal::F32
-                        => float_distance(&e1, &e2),
-                    _ => return Err(ConstantEvaluatorError::InvalidMathArg)
-                })
-                .register_as_evaluated_expr(self, span)
+                let result = fold_literal_vector!(match (e1, e2) {
+                    Float => |e1, e2| { float_distance(&e1, &e2) },
+                });
+                self.register_evaluated_expr(result, span)
             }
             // computational
             crate::MathFunction::Sign => {
