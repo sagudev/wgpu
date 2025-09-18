@@ -618,31 +618,15 @@ macro_rules! fold_literal_vector {
     };
     (@inner_finish
         $lit_vec:expr;
-        [$({$ty:ident ; $var:ident ; $($ret:ident)? ; $body:expr}),+]
-    ) => {
-        match $lit_vec {
-            $(
-                fold_literal_vector!(@expand_var $ty; $var) => { Ok(fold_literal_vector!(@expand_ret $ty $(; $ret)? ; $body)) }
-            )+
-            _ => Err(ConstantEvaluatorError::InvalidMathArg),
-        }
-    };
-    (@inner_finish
-        $lit_vec:expr;
         [$({$ty:ident ; $($var:ident),+ ; $($ret:ident)? ; $body:expr}),+]
     ) => {
         match $lit_vec {
             $(
-                ($(fold_literal_vector!(@expand_var $ty; $var)),+) => { Ok(fold_literal_vector!(@expand_ret $ty $(; $ret)? ; $body)) }
+                ($(LiteralVector::$ty(ref $var)),+) => { Ok(fold_literal_vector!(@expand_ret $ty $(; $ret)? ; $body)) }
             )+
             _ => Err(ConstantEvaluatorError::InvalidMathArg),
         }
     };
-
-    (@expand_var $ty:ident; $var:ident) => {
-        LiteralVector::$ty(ref $var)
-    };
-
     (@expand_ret $ty:ident; $body:expr) => {
         Literal::$ty($body)
     };
