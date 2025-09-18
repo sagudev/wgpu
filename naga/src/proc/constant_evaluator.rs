@@ -479,7 +479,7 @@ impl LiteralVector {
 }
 
 /// ```rust
-/// fold_literal_vector!(match v {
+/// match_literal_vector!(match v {
 ///     F16 => |v| {v.sum()},
 ///     Integer => |v| {v.sum()},
 ///     U32 => |v| -> I32 {v.sum()}, // optionally override return type
@@ -487,7 +487,7 @@ impl LiteralVector {
 /// ```
 ///
 /// ```rust
-/// fold_literal_vector!(match (e1, e2) {
+/// match_literal_vector!(match (e1, e2) {
 ///     F16 => |e1, e2| {e1+e2},
 ///     Integer => |e1, e2| {e1+e2},
 ///     U32 => |e1, e2| -> I32 {e1+e2}, // optionally override return type
@@ -497,23 +497,25 @@ impl LiteralVector {
 /// `Float` expands to `F16`, `F32`, `F64` and `AbstractFloat`.
 /// `Integer` expands to `I32`, `I64`, `U32`, `U64` and `AbstractInt`.
 ///
-macro_rules! fold_literal_vector {
-    (match $lit_vec:expr => {
+macro_rules! match_literal_vector {
+    (match $lit_vec:expr => $out:ident {
         $(
             $ty:ident => |$($var:ident),+| $(-> $ret:ident)? { $body:expr }
         ),+
         $(,)?
     }) => {
-        fold_literal_vector!(@inner_start $lit_vec; [$($ty),+]; [$({ $($var),+ ; $($ret)? ; $body }),+])
+        match_literal_vector!(@inner_start $lit_vec; $out; [$($ty),+]; [$({ $($var),+ ; $($ret)? ; $body }),+])
     };
 
     (@inner_start
         $lit_vec:expr;
+        $out:ident;
         [$($ty:ident),+];
         [$({ $($var:ident),+ ; $($ret:ident)? ; $body:expr }),+]
     ) => {
-        fold_literal_vector!(@inner
+        match_literal_vector!(@inner
             $lit_vec;
+            $out;
             [$($ty),+];
             [] <> [$({ $($var),+ ; $($ret)? ; $body }),+]
         )
@@ -521,13 +523,15 @@ macro_rules! fold_literal_vector {
 
     (@inner
         $lit_vec:expr;
+        $out:ident;
         [$ty:ident $(, $ty1:ident)*];
         [$({$_ty:ident ; $($_var:ident),+ ; $($_ret:ident)? ; $_body:expr}),*] <>
         [$({ $($var:ident),+ ; $($ret:ident)? ; $body:expr }),+]
     ) => {
-        fold_literal_vector!(@inner
+        match_literal_vector!(@inner
             $ty;
             $lit_vec;
+            $out;
             [$($ty1),*];
             [$({$_ty ; $($_var),+ ; $($_ret)? ; $_body}),*] <>
             [$({ $($var),+ ; $($ret)? ; $body }),+]
@@ -536,6 +540,7 @@ macro_rules! fold_literal_vector {
     (@inner
         Integer;
         $lit_vec:expr;
+        $out:ident;
         [$($ty:ident),*];
         [$({$_ty:ident ; $($_var:ident),+ ; $($_ret:ident)? ; $_body:expr}),*] <>
         [
@@ -543,8 +548,9 @@ macro_rules! fold_literal_vector {
             $(,{ $($var1:ident),+ ; $($ret1:ident)? ; $body1:expr })*
         ]
     ) => {
-        fold_literal_vector!(@inner
+        match_literal_vector!(@inner
             $lit_vec;
+            $out;
             [U32, I32, U64, I64, AbstractInt $(, $ty)*];
             [$({$_ty ; $($_var),+ ; $($_ret)? ; $_body}),*] <>
             [
@@ -560,6 +566,7 @@ macro_rules! fold_literal_vector {
     (@inner
         Float;
         $lit_vec:expr;
+        $out:ident;
         [$($ty:ident),*];
         [$({$_ty:ident ; $($_var:ident),+ ; $($_ret:ident)? ; $_body:expr}),*] <>
         [
@@ -567,8 +574,9 @@ macro_rules! fold_literal_vector {
             $(,{ $($var1:ident),+ ; $($ret1:ident)? ; $body1:expr })*
         ]
     ) => {
-        fold_literal_vector!(@inner
+        match_literal_vector!(@inner
             $lit_vec;
+            $out;
             [F16, F32, F64, AbstractFloat $(, $ty)*];
             [$({$_ty ; $($_var),+ ; $($_ret)? ; $_body}),*] <>
             [
@@ -583,15 +591,17 @@ macro_rules! fold_literal_vector {
     (@inner
         $ty:ident;
         $lit_vec:expr;
+        $out:ident;
         [$ty1:ident $(,$ty2:ident)*];
         [$({$_ty:ident ; $($_var:ident),+ ; $($_ret:ident)? ; $_body:expr}),*] <> [
             { $($var:ident),+ ; $($ret:ident)? ; $body:expr }
             $(, { $($var1:ident),+ ; $($ret1:ident)? ; $body1:expr })*
         ]
     ) => {
-        fold_literal_vector!(@inner
+        match_literal_vector!(@inner
             $ty1;
             $lit_vec;
+            $out;
             [$($ty2),*];
             [
                 $({$_ty ; $($_var),+ ; $($_ret)? ; $_body},)*
@@ -604,12 +614,14 @@ macro_rules! fold_literal_vector {
     (@inner
         $ty:ident;
         $lit_vec:expr;
+        $out:ident;
         [];
         [$({$_ty:ident ; $($_var:ident),+ ; $($_ret:ident)? ; $_body:expr}),*] <>
         [{ $($var:ident),+ ; $($ret:ident)? ; $body:expr }]
     ) => {
-        fold_literal_vector!(@inner_finish
+        match_literal_vector!(@inner_finish
             $lit_vec;
+            $out;
             [
                 $({ $_ty ; $($_var),+ ; $($_ret)? ; $_body },)*
                 { $ty; $($var),+ ; $($ret)? ; $body }
@@ -618,21 +630,22 @@ macro_rules! fold_literal_vector {
     };
     (@inner_finish
         $lit_vec:expr;
+        $out:ident;
         [$({$ty:ident ; $($var:ident),+ ; $($ret:ident)? ; $body:expr}),+]
     ) => {
         match $lit_vec {
             $(
                 #[allow(unused_parens)]
-                ($(LiteralVector::$ty(ref $var)),+) => { Ok(fold_literal_vector!(@expand_ret $ty $(; $ret)? ; $body)) }
+                ($(LiteralVector::$ty(ref $var)),+) => { Ok(match_literal_vector!(@expand_ret $out; $ty $(; $ret)? ; $body)) }
             )+
             _ => Err(ConstantEvaluatorError::InvalidMathArg),
         }
     };
-    (@expand_ret $ty:ident; $body:expr) => {
-        Literal::$ty($body)
+    (@expand_ret $out:ident; $ty:ident; $body:expr) => {
+        $out::$ty($body)
     };
-    (@expand_ret $_ty:ident; $ret:ident; $body:expr) => {
-        Literal::$ret($body)
+    (@expand_ret $out:ident; $_ty:ident; $ret:ident; $body:expr) => {
+        $out::$ret($body)
     };
 }
 
@@ -1665,7 +1678,7 @@ impl<'a> ConstantEvaluator<'a> {
                         ))
                 }
 
-                let result = fold_literal_vector!(match (e1, e2) => {
+                let result = match_literal_vector!(match (e1, e2) => Literal {
                     Float => |e1, e2| { float_dot(e1, e2) },
                     Integer => |e1, e2| { int_dot(e1, e2)? },
                 })?;
@@ -1682,7 +1695,7 @@ impl<'a> ConstantEvaluator<'a> {
                     e.iter().map(|&ei| ei * ei).sum::<F>().sqrt()
                 }
 
-                let result = fold_literal_vector!(match e1 => {
+                let result = match_literal_vector!(match e1 => Literal {
                     Float => |e1| { float_length(e1) },
                 })?;
                 self.register_evaluated_expr(Expression::Literal(result), span)
@@ -1706,7 +1719,7 @@ impl<'a> ConstantEvaluator<'a> {
                         .sum::<F>()
                         .sqrt()
                 }
-                let result = fold_literal_vector!(match (e1, e2) => {
+                let result = match_literal_vector!(match (e1, e2) => Literal {
                     Float => |e1, e2| { float_distance(e1, e2) },
                 })?;
                 self.register_evaluated_expr(Expression::Literal(result), span)
