@@ -622,6 +622,7 @@ macro_rules! fold_literal_vector {
     ) => {
         match $lit_vec {
             $(
+                #[allow(unused_parens)]
                 ($(LiteralVector::$ty(ref $var)),+) => { Ok(fold_literal_vector!(@expand_ret $ty $(; $ret)? ; $body)) }
             )+
             _ => Err(ConstantEvaluatorError::InvalidMathArg),
