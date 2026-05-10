@@ -184,8 +184,8 @@ impl HubReport {
 /// [`Storage`]: crate::storage::Storage
 pub struct Hub {
     pub(crate) adapters: Registry<Arc<Adapter>>,
-    pub(crate) devices: Registry<Arc<Device>>,
-    pub(crate) queues: Registry<Arc<Queue>>,
+    pub(crate) devices: Registry<Fallible<Device>>,
+    pub(crate) queues: Registry<Fallible<Queue>>,
     pub(crate) pipeline_layouts: Registry<Fallible<PipelineLayout>>,
     pub(crate) shader_modules: Registry<Fallible<ShaderModule>>,
     pub(crate) bind_group_layouts: Registry<Fallible<BindGroupLayout>>,

@@ -11,10 +11,10 @@ use crate::{
     limits::{self, check_limits, FailedLimit},
     lock::{rank, Mutex},
     present::Presentation,
-    resource::ResourceType,
+    resource::{Fallible, ResourceType},
     resource_log,
     timestamp_normalization::TimestampNormalizerInitError,
-    DOWNLEVEL_WARNING_MESSAGE,
+    LabelHelpers as _, DOWNLEVEL_WARNING_MESSAGE,
 };
 
 use wgt::{Backend, Backends, PowerPreference};
@@ -1183,23 +1183,33 @@ impl Global {
         desc: &DeviceDescriptor,
         device_id_in: Option<DeviceId>,
         queue_id_in: Option<QueueId>,
-    ) -> Result<(DeviceId, QueueId), RequestDeviceError> {
+    ) -> (DeviceId, QueueId, Option<RequestDeviceError>) {
         profiling::scope!("Adapter::request_device");
         api_log!("Adapter::request_device");
 
         let device_fid = self.hub.devices.prepare(device_id_in);
         let queue_fid = self.hub.queues.prepare(queue_id_in);
 
-        let adapter = self.hub.adapters.get(adapter_id);
-        let (device, queue) = adapter.create_device_and_queue(desc, self.instance.flags)?;
+        let error = 'error: {
+            let adapter = self.hub.adapters.get(adapter_id);
+            let (device, queue) = match adapter.create_device_and_queue(desc, self.instance.flags) {
+                Ok((device, queue)) => (device, queue),
+                Err(err) => break 'error err,
+            };
 
-        let device_id = device_fid.assign(device);
-        resource_log!("Created Device {:?}", device_id);
+            let device_id = device_fid.assign(Fallible::Valid(device));
+            resource_log!("Created Device {:?}", device_id);
 
-        let queue_id = queue_fid.assign(queue);
-        resource_log!("Created Queue {:?}", queue_id);
+            let queue_id = queue_fid.assign(Fallible::Valid(queue));
+            resource_log!("Created Queue {:?}", queue_id);
 
-        Ok((device_id, queue_id))
+            return (device_id, queue_id, None);
+        };
+
+        let device_id = device_fid.assign(Fallible::Invalid(Arc::new(desc.label.to_string())));
+        let queue_id = queue_fid.assign(Fallible::Invalid(Arc::new(desc.label.to_string())));
+
+        (device_id, queue_id, Some(error))
     }
 
     /// # Safety
@@ -1223,10 +1233,10 @@ impl Global {
         let (device, queue) =
             adapter.create_device_and_queue_from_hal(hal_device, desc, self.instance.flags)?;
 
-        let device_id = devices_fid.assign(device);
+        let device_id = devices_fid.assign(Fallible::Valid(device));
         resource_log!("Created Device {:?}", device_id);
 
-        let queue_id = queues_fid.assign(queue);
+        let queue_id = queues_fid.assign(Fallible::Valid(queue));
         resource_log!("Created Queue {:?}", queue_id);
 
         Ok((device_id, queue_id))

@@ -296,7 +296,7 @@ impl Global {
     ) -> Option<impl Deref<Target = A::Device>> {
         profiling::scope!("Device::as_hal");
 
-        let device = self.hub.devices.get(id);
+        let device = self.hub.devices.get(id).get().ok()?;
 
         SimpleResourceGuard::new(device, move |device| device.raw().as_any().downcast_ref())
     }
@@ -310,7 +310,7 @@ impl Global {
     ) -> Option<impl Deref<Target = A::Fence>> {
         profiling::scope!("Device::fence_as_hal");
 
-        let device = self.hub.devices.get(id);
+        let device = self.hub.devices.get(id).get().ok()?;
 
         FenceGuard::new(device)
     }
@@ -374,7 +374,7 @@ impl Global {
     ) -> Option<impl Deref<Target = A::Queue>> {
         profiling::scope!("Queue::as_hal");
 
-        let queue = self.hub.queues.get(id);
+        let queue = self.hub.queues.get(id).get().ok()?;
 
         SimpleResourceGuard::new(queue, move |queue| queue.raw().as_any().downcast_ref())
     }

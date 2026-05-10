@@ -35,7 +35,7 @@ use crate::{
         AttachmentData, DeviceLostInvocation, HostMap, MissingDownlevelFlags, MissingFeatures,
         RenderPassContext,
     },
-    hal_label,
+    hal_label, impl_resource_type, impl_storage_item,
     init_tracker::{
         BufferInitTracker, BufferInitTrackerAction, MemoryInitKind, TextureInitRange,
         TextureInitTrackerAction,
