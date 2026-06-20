@@ -291,30 +291,11 @@ impl Global {
 
         let fid = hub.textures.prepare(id_in);
 
-        let error = 'error: {
-            let device = self.hub.devices.get(device_id);
+        let device = self.hub.devices.get(device_id);
 
-            let texture = match device.create_texture(desc) {
-                Ok(texture) => texture,
-                Err(error) => break 'error error,
-            };
+        let (texture, error) = device.create_texture(desc);
 
-            #[cfg(feature = "trace")]
-            if let Some(ref mut trace) = *device.trace.lock() {
-                trace.add(trace::Action::CreateTexture(
-                    texture.to_trace(),
-                    desc.clone(),
-                ));
-            }
-
-            let id = fid.assign(Fallible::Valid(texture));
-            api_log!("Device::create_texture({desc:?}) -> {id:?}");
-
-            return (id, None);
-        };
-
-        let id = fid.assign(Fallible::Invalid(Arc::new(desc.label.to_string())));
-        (id, Some(error))
+        (fid.assign(texture), error)
     }
 
     /// # Safety

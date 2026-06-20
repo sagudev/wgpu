@@ -833,7 +833,7 @@ impl Queue {
 
     pub fn write_texture(
         &self,
-        destination: wgt::TexelCopyTextureInfo<Arc<Texture>>,
+        destination: wgt::TexelCopyTextureInfo<Fallible<Texture>>,
         data: &[u8],
         data_layout: &wgt::TexelCopyBufferLayout,
         size: &wgt::Extent3d,
@@ -843,7 +843,7 @@ impl Queue {
 
         self.device.check_is_valid()?;
 
-        let dst = destination.texture;
+        let dst = destination.texture.get()?;
         let destination = wgt::TexelCopyTextureInfo {
             texture: (),
             mip_level: destination.mip_level,

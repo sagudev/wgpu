@@ -398,6 +398,7 @@ impl WebGpuError for InvalidResourceError {
     }
 }
 
+#[derive(Debug)]
 pub enum Fallible<T: ParentDevice> {
     Valid(Arc<T>),
     Invalid(Arc<String>),
@@ -410,6 +411,16 @@ impl<T: ParentDevice> Fallible<T> {
             Fallible::Invalid(label) => Err(InvalidResourceError(ResourceErrorIdent {
                 r#type: Cow::Borrowed(T::TYPE),
                 label: (*label).clone(),
+            })),
+        }
+    }
+
+    pub fn get_ref(&self) -> Result<&Arc<T>, InvalidResourceError> {
+        match self {
+            Fallible::Valid(v) => Ok(v),
+            Fallible::Invalid(label) => Err(InvalidResourceError(ResourceErrorIdent {
+                r#type: Cow::Borrowed(T::TYPE),
+                label: (**label).clone(),
             })),
         }
     }

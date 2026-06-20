@@ -53,7 +53,10 @@ pub struct Player {
     query_sets:
         HashMap<wgc::id::PointerId<wgc::id::markers::QuerySet>, Arc<wgc::resource::QuerySet>>,
     buffers: HashMap<wgc::id::PointerId<wgc::id::markers::Buffer>, Arc<wgc::resource::Buffer>>,
-    textures: HashMap<wgc::id::PointerId<wgc::id::markers::Texture>, Arc<wgc::resource::Texture>>,
+    textures: HashMap<
+        wgc::id::PointerId<wgc::id::markers::Texture>,
+        wgc::resource::Fallible<wgc::resource::Texture>,
+    >,
     texture_views:
         HashMap<wgc::id::PointerId<wgc::id::markers::TextureView>, Arc<wgc::resource::TextureView>>,
     external_textures: HashMap<
@@ -142,12 +145,12 @@ impl Player {
                 let _ = buffer.unmap();
             }
             Action::CreateTexture(id, desc) => {
-                let texture = device.create_texture(&desc).expect("create_texture error");
+                let texture = device.create_texture(&desc).0;
                 self.textures.insert(id, texture);
             }
             Action::DestroyTexture(id) => {
                 let texture = self.textures.get(&id).expect("invalid texture");
-                texture.destroy();
+                texture.get_ref().expect("invalid texture").destroy();
             }
             Action::DropTexture(id) => {
                 self.textures.remove(&id).expect("invalid texture");
@@ -494,7 +497,8 @@ impl Player {
             .get_current_texture()
             .expect("get_current_texture error");
         let texture = frame.texture.expect("did not obtain a surface texture");
-        self.textures.insert(id, texture);
+        self.textures
+            .insert(id, wgc::resource::Fallible::Valid(texture));
     }
 
     pub fn resolve_buffer_id(
@@ -507,7 +511,7 @@ impl Player {
     fn resolve_texture_id(
         &self,
         id: wgc::id::PointerId<wgc::id::markers::Texture>,
-    ) -> Arc<wgc::resource::Texture> {
+    ) -> wgc::resource::Fallible<wgc::resource::Texture> {
         self.textures.get(&id).expect("invalid texture").clone()
     }
 
@@ -642,7 +646,7 @@ impl Player {
     fn resolve_texel_copy_texture_info(
         &self,
         info: wgt::TexelCopyTextureInfo<wgc::id::PointerId<wgc::id::markers::Texture>>,
-    ) -> wgt::TexelCopyTextureInfo<Arc<wgc::resource::Texture>> {
+    ) -> wgt::TexelCopyTextureInfo<wgc::resource::Fallible<wgc::resource::Texture>> {
         wgt::TexelCopyTextureInfo {
             texture: self.resolve_texture_id(info.texture),
             mip_level: info.mip_level,
@@ -1398,7 +1402,7 @@ impl Player {
     fn resolve_texture_transition(
         &self,
         trans: wgt::TextureTransition<PointerId<wgc::id::markers::Texture>>,
-    ) -> wgt::TextureTransition<Arc<wgc::resource::Texture>> {
+    ) -> wgt::TextureTransition<wgc::resource::Fallible<wgc::resource::Texture>> {
         wgt::TextureTransition {
             texture: self
                 .textures

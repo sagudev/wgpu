@@ -1373,7 +1373,7 @@ impl Device {
         }
     }
 
-    pub fn create_texture(
+    pub fn create_texture_inner(
         self: &Arc<Self>,
         desc: &resource::TextureDescriptor,
     ) -> Result<Arc<Texture>, resource::CreateTextureError> {
@@ -1748,12 +1748,35 @@ impl Device {
         Ok(texture)
     }
 
+    pub fn create_texture(
+        self: &Arc<Self>,
+        desc: &resource::TextureDescriptor,
+    ) -> (Fallible<Texture>, Option<resource::CreateTextureError>) {
+        match self.create_texture_inner(desc) {
+            Ok(texture) => {
+                #[cfg(feature = "trace")]
+                if let Some(ref mut trace) = *self.trace.lock() {
+                    use crate::device::trace::IntoTrace as _;
+
+                    trace.add(trace::Action::CreateTexture(
+                        texture.to_trace(),
+                        desc.clone(),
+                    ));
+                }
+                (Fallible::Valid(texture), None)
+            }
+            Err(e) => (Fallible::Invalid(Arc::new(desc.label.to_string())), Some(e)),
+        }
+    }
+
     pub fn create_texture_view(
         self: &Arc<Self>,
-        texture: &Arc<Texture>,
+        texture: &Fallible<Texture>,
         desc: &resource::TextureViewDescriptor,
     ) -> Result<Arc<TextureView>, resource::CreateTextureViewError> {
         self.check_is_valid()?;
+
+        let texture = texture.get_ref()?;
 
         let snatch_guard = texture.device.snatchable_lock.read();
 

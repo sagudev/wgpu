@@ -8,7 +8,7 @@ use crate::{
     command::ColorAttachments,
     id,
     instance::Surface,
-    resource::{Buffer, QuerySet, Texture},
+    resource::{Buffer, Fallible, QuerySet, Texture},
 };
 
 pub trait ReferenceType {
@@ -78,7 +78,7 @@ impl ReferenceType for PointerReferences {
 impl ReferenceType for ArcReferences {
     type Buffer = Arc<Buffer>;
     type Surface = Arc<Surface>;
-    type Texture = Arc<Texture>;
+    type Texture = Fallible<Texture>;
     type TextureView = Arc<crate::resource::TextureView>;
     type ExternalTexture = Arc<crate::resource::ExternalTexture>;
     type QuerySet = Arc<QuerySet>;
