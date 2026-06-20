@@ -27,7 +27,9 @@ use crate::{
     lock::{rank, Mutex, RwLock},
     ray_tracing::{BlasCompactReadyPendingClosure, BlasPrepareCompactError},
     resource_log,
-    snatch::{SnatchGuard, Snatchable},
+    snatch::{
+        DestructibleResource, DestructibleResourceState, ResourceState, SnatchGuard, Snatchable,
+    },
     timestamp_normalization::TimestampNormalizationBindGroup,
     track::{SharedTrackerIndexAllocator, TrackerIndex},
     weak_vec::WeakVec,
@@ -1353,20 +1355,32 @@ pub enum TextureClearMode {
     None,
 }
 
-#[derive(Debug)]
-pub struct Texture {
-    pub(crate) inner: Snatchable<TextureInner>,
+pub(crate) struct TextureState {
+    pub(crate) inner: TextureInner,
     pub(crate) device: Arc<Device>,
-    pub(crate) desc: wgt::TextureDescriptor<String, Vec<wgt::TextureFormat>>,
     pub(crate) _hal_usage: wgt::TextureUses,
-    pub(crate) format_features: wgt::TextureFormatFeatures,
-    pub(crate) initialization_status: RwLock<TextureInitTracker>,
-    pub(crate) full_range: TextureSelector,
-    pub(crate) tracking_data: TrackingData,
+    /// The `label` from the descriptor used to create the resource.
+    pub(crate) label: String,
     pub(crate) clear_mode: RwLock<TextureClearMode>,
     pub(crate) views: Mutex<WeakVec<TextureView>>,
     // Bind groups that reference this texture. May contain duplicates.
     pub(crate) bind_groups: Mutex<WeakVec<BindGroup>>,
+}
+
+impl_labeled!(TextureState);
+impl ResourceType for TextureState {
+    const TYPE: &'static str = "Texture";
+}
+
+#[derive(Debug)]
+pub struct Texture {
+    pub(crate) desc: wgt::TextureDescriptor<String, Vec<wgt::TextureFormat>>,
+    pub(crate) device: Arc<Device>,
+    pub(crate) state: DestructibleResource<TextureState>,
+    pub(crate) tracking_data: TrackingData,
+    pub(crate) full_range: TextureSelector,
+    pub(crate) format_features: wgt::TextureFormatFeatures,
+    pub(crate) initialization_status: RwLock<TextureInitTracker>,
 }
 
 impl Texture {
@@ -1380,11 +1394,22 @@ impl Texture {
         init: bool,
     ) -> Self {
         Texture {
-            inner: Snatchable::new(inner),
             device: device.clone(),
-            desc: desc.map_label(|label| label.to_string()),
-            _hal_usage: hal_usage,
-            format_features,
+            desc: desc.map_label(|l| l.to_string()),
+            state: DestructibleResource::new(ResourceState::Valid(TextureState {
+                inner,
+                device: device.clone(),
+                _hal_usage: hal_usage,
+                label: desc.label.to_string(),
+                clear_mode: RwLock::new(rank::TEXTURE_CLEAR_MODE, clear_mode),
+                views: Mutex::new(rank::TEXTURE_VIEWS, WeakVec::new()),
+                bind_groups: Mutex::new(rank::TEXTURE_BIND_GROUPS, WeakVec::new()),
+            })),
+            full_range: TextureSelector {
+                mips: 0..desc.mip_level_count,
+                layers: 0..desc.array_layer_count(),
+            },
+            tracking_data: TrackingData::new(device.tracker_indices.textures.clone()),
             initialization_status: RwLock::new(
                 rank::TEXTURE_INITIALIZATION_STATUS,
                 if init {
@@ -1393,14 +1418,7 @@ impl Texture {
                     TextureInitTracker::new(desc.mip_level_count, 0)
                 },
             ),
-            full_range: TextureSelector {
-                mips: 0..desc.mip_level_count,
-                layers: 0..desc.array_layer_count(),
-            },
-            tracking_data: TrackingData::new(device.tracker_indices.textures.clone()),
-            clear_mode: RwLock::new(rank::TEXTURE_CLEAR_MODE, clear_mode),
-            views: Mutex::new(rank::TEXTURE_VIEWS, WeakVec::new()),
-            bind_groups: Mutex::new(rank::TEXTURE_BIND_GROUPS, WeakVec::new()),
+            format_features,
         }
     }
 
@@ -1422,9 +1440,42 @@ impl Texture {
     }
 }
 
+impl TextureState {
+    fn destroy(self) -> Option<DestroyedTexture> {
+        let TextureState {
+            inner,
+            device,
+            _hal_usage,
+            label,
+            clear_mode,
+            views,
+            bind_groups,
+        } = self;
+        let raw = match inner {
+            TextureInner::Native { raw } => raw,
+            TextureInner::Surface { .. } => {
+                return None;
+            }
+        };
+
+        Some(DestroyedTexture {
+            raw: ManuallyDrop::new(raw),
+            views: views.into_inner(),
+            clear_mode: clear_mode.into_inner(),
+            bind_groups: bind_groups.into_inner(),
+            device,
+            label,
+        })
+    }
+}
+
 impl Drop for Texture {
     fn drop(&mut self) {
-        match *self.clear_mode.write() {
+        let DestructibleResourceState::Valid(state) = self.state.take() else {
+            // this is bad, we might forget doing proper cleanup on destroy
+            return;
+        };
+        match *state.clear_mode.write() {
             TextureClearMode::Surface {
                 ref mut clear_view, ..
             } => {
@@ -1449,7 +1500,7 @@ impl Drop for Texture {
             _ => {}
         };
 
-        if let Some(TextureInner::Native { raw }) = self.inner.take() {
+        if let TextureInner::Native { raw } = state.inner {
             resource_log!("Destroy raw {}", self.error_ident());
             unsafe {
                 self.device.raw().destroy_texture(raw);
@@ -1462,7 +1513,11 @@ impl RawResourceAccess for Texture {
     type DynResource = dyn hal::DynTexture;
 
     fn raw<'a>(&'a self, guard: &'a SnatchGuard) -> Option<&'a Self::DynResource> {
-        self.inner.get(guard).map(|t| t.raw())
+        match self.state.get(guard) {
+            DestructibleResourceState::Valid(state) => Some(state.inner.raw()),
+            DestructibleResourceState::Invalid => None,
+            DestructibleResourceState::Destroyed => None,
+        }
     }
 }
 
@@ -1471,19 +1526,23 @@ impl Texture {
         &'a self,
         guard: &'a SnatchGuard,
     ) -> Result<&'a TextureInner, DestroyedResourceError> {
-        self.inner
-            .get(guard)
-            .ok_or_else(|| DestroyedResourceError(self.error_ident()))
+        match self.state.get(guard) {
+            DestructibleResourceState::Valid(state) => Ok(&state.inner),
+            // TODO: different error
+            DestructibleResourceState::Invalid => Err(DestroyedResourceError(self.error_ident())),
+            DestructibleResourceState::Destroyed => Err(DestroyedResourceError(self.error_ident())),
+        }
     }
 
-    pub(crate) fn check_destroyed(
-        &self,
-        guard: &SnatchGuard,
-    ) -> Result<(), DestroyedResourceError> {
-        self.inner
-            .get(guard)
-            .map(|_| ())
-            .ok_or_else(|| DestroyedResourceError(self.error_ident()))
+    pub(crate) fn check_destroyed<'a>(
+        &'a self,
+        guard: &'a SnatchGuard,
+    ) -> Result<&'a TextureState, DestroyedResourceError> {
+        match self.state.get(guard) {
+            DestructibleResourceState::Valid(state) => Ok(state),
+            DestructibleResourceState::Invalid => Err(DestroyedResourceError(self.error_ident())),
+            DestructibleResourceState::Destroyed => Err(DestroyedResourceError(self.error_ident())),
+        }
     }
 
     pub(crate) fn get_clear_view<'a>(
@@ -1519,35 +1578,17 @@ impl Texture {
         let device = &self.device;
 
         let temp = {
-            let raw = match self.inner.snatch(&mut device.snatchable_lock.write()) {
-                Some(TextureInner::Native { raw }) => raw,
-                Some(TextureInner::Surface { .. }) => {
-                    return;
-                }
-                None => {
-                    // Per spec, it is valid to call `destroy` multiple times.
-                    return;
-                }
+            let DestructibleResourceState::Valid(state) =
+                self.state.snatch(&mut device.snatchable_lock.write())
+            else {
+                return;
             };
 
-            let views = {
-                let mut guard = self.views.lock();
-                mem::take(&mut *guard)
+            let Some(destroyed_texture) = state.destroy() else {
+                return;
             };
 
-            let bind_groups = {
-                let mut guard = self.bind_groups.lock();
-                mem::take(&mut *guard)
-            };
-
-            queue::TempResource::DestroyedTexture(DestroyedTexture {
-                raw: ManuallyDrop::new(raw),
-                views,
-                clear_mode: mem::replace(&mut *self.clear_mode.write(), TextureClearMode::None),
-                bind_groups,
-                device: Arc::clone(&self.device),
-                label: self.label().to_owned(),
-            })
+            queue::TempResource::DestroyedTexture(destroyed_texture)
         };
 
         let Some(queue) = device.get_queue() else {

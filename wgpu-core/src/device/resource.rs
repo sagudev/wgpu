@@ -1756,8 +1756,8 @@ impl Device {
         self.check_is_valid()?;
 
         let snatch_guard = texture.device.snatchable_lock.read();
-
-        let texture_raw = texture.try_raw(&snatch_guard)?;
+        let texture_state = texture.check_destroyed(&snatch_guard)?;
+        let texture_raw = texture_state.inner.raw();
 
         // resolve TextureViewDescriptor defaults
         // https://gpuweb.github.io/gpuweb/#abstract-opdef-resolving-gputextureviewdescriptor-defaults
@@ -2100,7 +2100,7 @@ impl Device {
         let view = Arc::new(view);
 
         {
-            let mut views = texture.views.lock();
+            let mut views = texture_state.views.lock();
             views.push(Arc::downgrade(&view));
         }
 
@@ -3547,7 +3547,10 @@ impl Device {
 
         let weak_ref = Arc::downgrade(&bind_group);
         for texture in bind_group.used.views.used_textures() {
-            let mut bind_groups = texture.bind_groups.lock();
+            let texture_state = texture
+                .check_destroyed(&snatch_guard)
+                .expect("valid view should have valid tex");
+            let mut bind_groups = texture_state.bind_groups.lock();
             bind_groups.push(weak_ref.clone());
         }
         for buffer in bind_group.used.buffers.used_resources() {

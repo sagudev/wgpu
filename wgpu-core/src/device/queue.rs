@@ -1678,11 +1678,16 @@ impl Queue {
             let mut submit_surface_textures =
                 SmallVec::<[&dyn hal::DynSurfaceTexture; 2]>::with_capacity(surface_textures.len());
             for texture in surface_textures.values() {
-                let raw = match texture.inner.get(&snatch_guard) {
-                    Some(TextureInner::Surface { raw, .. }) => raw.as_ref(),
+                let raw = match texture
+                    .state
+                    .get(&snatch_guard)
+                    .get_valid()
+                    .map(|state| &state.inner)
+                {
+                    Some(TextureInner::Surface { raw, .. }) => raw,
                     _ => unreachable!(),
                 };
-                submit_surface_textures.push(raw);
+                submit_surface_textures.push(raw.as_ref());
             }
 
             unsafe {

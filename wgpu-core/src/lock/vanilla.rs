@@ -95,6 +95,10 @@ impl<T> RwLock<T> {
         RwLockWriteGuard(self.0.write())
     }
 
+    pub fn into_inner(self) -> T {
+        self.0.into_inner()
+    }
+
     /// Force an read-unlock operation on this lock.
     ///
     /// Safety:

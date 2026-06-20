@@ -13,6 +13,7 @@ use crate::{
     resource::{
         Buffer, DestroyedResourceError, InvalidResourceError, Labeled, MissingBufferUsageError,
         ParentDevice, RawResourceAccess, ResourceErrorIdent, Texture, TextureClearMode,
+        TextureState,
     },
     snatch::SnatchGuard,
     track::TextureTrackerSetSingle,
@@ -297,10 +298,11 @@ pub(crate) fn clear_texture<T: TextureTrackerSetSingle>(
     snatch_guard: &SnatchGuard<'_>,
     instance_flags: wgt::InstanceFlags,
 ) -> Result<(), ClearError> {
-    let dst_raw = dst_texture.try_raw(snatch_guard)?;
+    let texture_state = dst_texture.check_destroyed(snatch_guard)?;
+    let dst_raw = texture_state.inner.raw();
 
     // Issue the right barrier.
-    let clear_usage = match *dst_texture.clear_mode.read() {
+    let clear_usage = match *texture_state.clear_mode.read() {
         TextureClearMode::BufferCopy => wgt::TextureUses::COPY_DST,
         TextureClearMode::RenderPass {
             is_color: false, ..
@@ -342,7 +344,7 @@ pub(crate) fn clear_texture<T: TextureTrackerSetSingle>(
     }
 
     // Record actual clearing
-    let clear_mode = dst_texture.clear_mode.read();
+    let clear_mode = texture_state.clear_mode.read();
     match *clear_mode {
         TextureClearMode::BufferCopy => clear_texture_via_buffer_copies(
             &dst_texture.desc,
@@ -354,11 +356,25 @@ pub(crate) fn clear_texture<T: TextureTrackerSetSingle>(
         ),
         TextureClearMode::Surface { .. } => {
             drop(clear_mode);
-            clear_texture_via_render_passes(dst_texture, range, true, encoder, instance_flags)?
+            clear_texture_via_render_passes(
+                dst_texture,
+                texture_state,
+                range,
+                true,
+                encoder,
+                instance_flags,
+            )?
         }
         TextureClearMode::RenderPass { is_color, .. } => {
             drop(clear_mode);
-            clear_texture_via_render_passes(dst_texture, range, is_color, encoder, instance_flags)?
+            clear_texture_via_render_passes(
+                dst_texture,
+                texture_state,
+                range,
+                is_color,
+                encoder,
+                instance_flags,
+            )?
         }
         TextureClearMode::None => {
             return Err(ClearError::NoValidTextureClearMode(
@@ -467,6 +483,7 @@ fn clear_texture_via_buffer_copies(
 
 fn clear_texture_via_render_passes(
     dst_texture: &Texture,
+    texture_state: &TextureState,
     range: TextureInitRange,
     is_color: bool,
     encoder: &mut dyn hal::DynCommandEncoder,
@@ -480,7 +497,7 @@ fn clear_texture_via_render_passes(
         depth_or_array_layers: 1, // Only one layer is cleared at a time.
     };
 
-    let clear_mode = dst_texture.clear_mode.read();
+    let clear_mode = texture_state.clear_mode.read();
 
     for mip_level in range.mip_range {
         let extent = extent_base.mip_level_size(mip_level, dst_texture.desc.dimension);
