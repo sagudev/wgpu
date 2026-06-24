@@ -105,6 +105,10 @@ macro_rules! define_lock_ranks {
 }
 
 define_lock_ranks! {
+    // FIXME: idk, but it generally should be before most
+    // except for REGISTRY_STORAGE which happens both before (for render passes) and after (for the rest)
+    // but it's not mutex guard is not alive (for render passes) so maybe it's okay
+    rank RENDER_PASS "RenderPass" followed by { }
     // Non-leaf ranks, in topological order.
     rank COMMAND_BUFFER_DATA "CommandBuffer::data" followed by {
         DEVICE_SNATCHABLE_LOCK,
