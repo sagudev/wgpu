@@ -5,7 +5,7 @@ use crate::{
     identity::IdentityManager,
     lock::{
         rank::{self, LockRank},
-        RwLock, RwLockReadGuard,
+        RwLock, RwLockReadGuard, RwLockWriteGuard,
     },
     storage::{Element, Storage, StorageItem},
 };
@@ -94,6 +94,9 @@ impl<T: StorageItem> Registry<T> {
     #[track_caller]
     pub(crate) fn read<'a>(&'a self) -> RwLockReadGuard<'a, Storage<T>> {
         self.storage.read()
+    }
+    pub(crate) fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Storage<T>> {
+        self.storage.write()
     }
     pub(crate) fn remove(&self, id: Id<T::Marker>) -> T {
         let value = self.storage.write().remove(id);

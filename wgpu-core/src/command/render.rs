@@ -35,7 +35,7 @@ use crate::{
         RenderPassCompatibilityError, RenderPassContext,
     },
     global::Global,
-    hal_label, id,
+    hal_label, id, impl_resource_type,
     init_tracker::{MemoryInitKind, TextureInitRange, TextureInitTrackerAction},
     pipeline::{PipelineFlags, RenderPipeline, VertexStep},
     resource::{
@@ -318,6 +318,12 @@ pub struct RenderPass {
     // Resource binding dedupe state.
     current_bind_groups: BindGroupStateChange,
     current_pipeline: StateChange<id::RenderPipelineId>,
+}
+
+impl_resource_type!(RenderPass);
+
+impl crate::storage::StorageItem for RenderPass {
+    type Marker = id::markers::RenderPassEncoder;
 }
 
 impl RenderPass {
@@ -2136,6 +2142,19 @@ impl Global {
         }
     }
 
+    pub fn command_encoder_begin_render_pass_with_id(
+        &self,
+        encoder_id: id::CommandEncoderId,
+        desc: &RenderPassDescriptor<'_>,
+        id_in: Option<id::RenderPassEncoderId>,
+    ) -> (id::RenderPassEncoderId, Option<CommandEncoderError>) {
+        let hub = &self.hub;
+        let fid = hub.render_passes.prepare(id_in);
+        let (render_pass, error) = self.command_encoder_begin_render_pass(encoder_id, desc);
+        let id = fid.assign(render_pass);
+        (id, error)
+    }
+
     pub fn render_pass_end(&self, pass: &mut RenderPass) -> Result<(), EncoderStateError> {
         profiling::scope!(
             "CommandEncoder::run_render_pass {}",
@@ -2176,6 +2195,15 @@ impl Global {
                 multiview_mask: pass.multiview_mask,
             })
         })
+    }
+
+    pub fn render_pass_end_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+    ) -> Result<(), EncoderStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_end(pass)
     }
 }
 
@@ -3577,6 +3605,18 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_set_bind_group_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        index: u32,
+        bind_group_id: Option<id::BindGroupId>,
+        offsets: &[DynamicOffset],
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_bind_group(pass, index, bind_group_id, offsets)
+    }
+
     pub fn render_pass_set_pipeline(
         &self,
         pass: &mut RenderPass,
@@ -3602,6 +3642,16 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_set_pipeline_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        pipeline_id: id::RenderPipelineId,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_pipeline(pass, pipeline_id)
+    }
+
     pub fn render_pass_set_index_buffer(
         &self,
         pass: &mut RenderPass,
@@ -3621,6 +3671,19 @@ impl Global {
         });
 
         Ok(())
+    }
+
+    pub fn render_pass_set_index_buffer_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        buffer_id: id::BufferId,
+        index_format: IndexFormat,
+        offset: BufferAddress,
+        size: Option<BufferSize>,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_index_buffer(pass, buffer_id, index_format, offset, size)
     }
 
     pub fn render_pass_set_vertex_buffer(
@@ -3650,6 +3713,19 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_set_vertex_buffer_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        slot: u32,
+        buffer_id: Option<id::BufferId>,
+        offset: BufferAddress,
+        size: Option<BufferSize>,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_vertex_buffer(pass, slot, buffer_id, offset, size)
+    }
+
     pub fn render_pass_set_blend_constant(
         &self,
         pass: &mut RenderPass,
@@ -3662,6 +3738,16 @@ impl Global {
             .push(ArcRenderCommand::SetBlendConstant(color));
 
         Ok(())
+    }
+
+    pub fn render_pass_set_blend_constant_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        color: Color,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_blend_constant(pass, color)
     }
 
     pub fn render_pass_set_stencil_reference(
@@ -3681,6 +3767,16 @@ impl Global {
             .push(ArcRenderCommand::SetStencilReference(value));
 
         Ok(())
+    }
+
+    pub fn render_pass_set_stencil_reference_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        value: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_stencil_reference(pass, value)
     }
 
     pub fn render_pass_set_viewport(
@@ -3705,6 +3801,21 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_set_viewport_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        depth_min: f32,
+        depth_max: f32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_viewport(pass, x, y, w, h, depth_min, depth_max)
+    }
+
     pub fn render_pass_set_scissor_rect(
         &self,
         pass: &mut RenderPass,
@@ -3720,6 +3831,19 @@ impl Global {
             .push(ArcRenderCommand::SetScissor(Rect { x, y, w, h }));
 
         Ok(())
+    }
+
+    pub fn render_pass_set_scissor_rect_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        x: u32,
+        y: u32,
+        w: u32,
+        h: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_scissor_rect(pass, x, y, w, h)
     }
 
     pub fn render_pass_set_immediates(
@@ -3758,6 +3882,17 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_set_immediates_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        offset: u32,
+        data: &[u8],
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_set_immediates(pass, offset, data)
+    }
+
     pub fn render_pass_draw(
         &self,
         pass: &mut RenderPass,
@@ -3780,6 +3915,25 @@ impl Global {
         });
 
         Ok(())
+    }
+
+    pub fn render_pass_draw_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        vertex_count: u32,
+        instance_count: u32,
+        first_vertex: u32,
+        first_instance: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_draw(
+            pass,
+            vertex_count,
+            instance_count,
+            first_vertex,
+            first_instance,
+        )
     }
 
     pub fn render_pass_draw_indexed(
@@ -3806,6 +3960,27 @@ impl Global {
         });
 
         Ok(())
+    }
+
+    pub fn render_pass_draw_indexed_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        index_count: u32,
+        instance_count: u32,
+        first_index: u32,
+        base_vertex: i32,
+        first_instance: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_draw_indexed(
+            pass,
+            index_count,
+            instance_count,
+            first_index,
+            base_vertex,
+            first_instance,
+        )
     }
 
     pub fn render_pass_draw_mesh_tasks(
@@ -3854,6 +4029,17 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_draw_indirect_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        buffer_id: id::BufferId,
+        offset: BufferAddress,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_draw_indirect(pass, buffer_id, offset)
+    }
+
     pub fn render_pass_draw_indexed_indirect(
         &self,
         pass: &mut RenderPass,
@@ -3877,6 +4063,17 @@ impl Global {
         });
 
         Ok(())
+    }
+
+    pub fn render_pass_draw_indexed_indirect_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        buffer_id: id::BufferId,
+        offset: BufferAddress,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_draw_indexed_indirect(pass, buffer_id, offset)
     }
 
     pub fn render_pass_draw_mesh_tasks_indirect(
@@ -4085,12 +4282,32 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_push_debug_group_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        label: &str,
+        color: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_push_debug_group(pass, label, color)
+    }
+
     pub fn render_pass_pop_debug_group(&self, pass: &mut RenderPass) -> Result<(), PassStateError> {
         let base = pass_base!(pass, PassErrorScope::PopDebugGroup);
 
         base.commands.push(ArcRenderCommand::PopDebugGroup);
 
         Ok(())
+    }
+
+    pub fn render_pass_pop_debug_group_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_pop_debug_group(pass)
     }
 
     pub fn render_pass_insert_debug_marker(
@@ -4112,6 +4329,17 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_insert_debug_marker_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        label: &str,
+        color: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_insert_debug_marker(pass, label, color)
+    }
+
     pub fn render_pass_write_timestamp(
         &self,
         pass: &mut RenderPass,
@@ -4129,6 +4357,17 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_write_timestamp_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        query_set_id: id::QuerySetId,
+        query_index: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_write_timestamp(pass, query_set_id, query_index)
+    }
+
     pub fn render_pass_begin_occlusion_query(
         &self,
         pass: &mut RenderPass,
@@ -4143,6 +4382,16 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_begin_occlusion_query_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        query_index: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_begin_occlusion_query(pass, query_index)
+    }
+
     pub fn render_pass_end_occlusion_query(
         &self,
         pass: &mut RenderPass,
@@ -4153,6 +4402,15 @@ impl Global {
         base.commands.push(ArcRenderCommand::EndOcclusionQuery);
 
         Ok(())
+    }
+
+    pub fn render_pass_end_occlusion_query_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_end_occlusion_query(pass)
     }
 
     pub fn render_pass_begin_pipeline_statistics_query(
@@ -4173,6 +4431,17 @@ impl Global {
         Ok(())
     }
 
+    pub fn render_pass_begin_pipeline_statistics_query_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        query_set_id: id::QuerySetId,
+        query_index: u32,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_begin_pipeline_statistics_query(pass, query_set_id, query_index)
+    }
+
     pub fn render_pass_end_pipeline_statistics_query(
         &self,
         pass: &mut RenderPass,
@@ -4184,6 +4453,15 @@ impl Global {
             .push(ArcRenderCommand::EndPipelineStatisticsQuery);
 
         Ok(())
+    }
+
+    pub fn render_pass_end_pipeline_statistics_query_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_end_pipeline_statistics_query(pass)
     }
 
     pub fn render_pass_execute_bundles(
@@ -4206,6 +4484,16 @@ impl Global {
         pass.current_bind_groups.reset();
 
         Ok(())
+    }
+
+    pub fn render_pass_execute_bundles_with_id(
+        &self,
+        pass: id::RenderPassEncoderId,
+        render_bundle_ids: &[id::RenderBundleId],
+    ) -> Result<(), PassStateError> {
+        let mut render_passes = self.hub.render_passes.write();
+        let pass = render_passes.get_mut(pass);
+        self.render_pass_execute_bundles(pass, render_bundle_ids)
     }
 }
 

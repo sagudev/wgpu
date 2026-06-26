@@ -120,6 +120,20 @@ where
                 _ => None,
             })
     }
+
+    pub(crate) fn get_mut(&mut self, id: Id<T::Marker>) -> &mut T {
+        let (index, epoch) = id.unzip();
+        let (result, storage_epoch) = match self.map.get_mut(index as usize) {
+            Some(Element::Occupied(v, epoch)) => (v, *epoch),
+            None | Some(Element::Vacant) => panic!("{}[{:?}] does not exist", self.kind, id),
+        };
+        assert_eq!(
+            epoch, storage_epoch,
+            "{}[{:?}] is no longer alive",
+            self.kind, id
+        );
+        result
+    }
 }
 
 impl<T> Storage<T>
