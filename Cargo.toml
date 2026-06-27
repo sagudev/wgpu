@@ -109,6 +109,7 @@ approx = "0.5"
 arbitrary = "1.4.2"
 argh = "0.1.13"
 arrayvec = { version = "0.7.1", default-features = false }
+atomic_refcell = "0.1"
 bincode = "2"
 bit-set = { version = "0.10", default-features = false }
 bit-vec = { version = "0.9.1", default-features = false }

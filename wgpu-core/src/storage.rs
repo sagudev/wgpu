@@ -1,4 +1,5 @@
 use alloc::{sync::Arc, vec::Vec};
+use atomic_refcell::AtomicRefCell;
 use core::mem;
 
 use crate::id::{Id, Marker};
@@ -30,6 +31,14 @@ impl<T: ResourceType> ResourceType for Arc<T> {
 }
 
 impl<T: StorageItem> StorageItem for Arc<T> {
+    type Marker = T::Marker;
+}
+
+impl<T: ResourceType> ResourceType for AtomicRefCell<T> {
+    const TYPE: &'static str = T::TYPE;
+}
+
+impl<T: StorageItem> StorageItem for AtomicRefCell<T> {
     type Marker = T::Marker;
 }
 

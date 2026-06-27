@@ -121,7 +121,11 @@ std = []
 static-dxc = ["wgpu-hal/static-dxc"]
 
 ## Enable portable atomics on platforms that do not support 64bit atomics.
-portable-atomic = ["dep:portable-atomic", "wgpu-hal/portable-atomic"]
+portable-atomic = [
+    "dep:portable-atomic",
+    "wgpu-hal/portable-atomic",
+    "atomic_refcell/portable-atomic",
+]
 
 #! ### Target Conditional Features
 # --------------------------------------------------------------------
@@ -179,6 +183,7 @@ wgpu-hal.workspace = true
 wgpu-types.workspace = true
 
 arrayvec.workspace = true
+atomic_refcell.workspace = true
 bit-vec.workspace = true
 bit-set.workspace = true
 bitflags.workspace = true
