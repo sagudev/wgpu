@@ -204,14 +204,19 @@ impl ExternalTextureParams {
     }
 }
 
+pub(crate) struct DeviceState {
+    pub(crate) raw: Box<dyn hal::DynDevice>,
+    pub(crate) zero_buffer: ManuallyDrop<Box<dyn hal::DynBuffer>>,
+    pub(crate) empty_bgl: ManuallyDrop<Box<dyn hal::DynBindGroupLayout>>,
+    pub(crate) fence: ManuallyDrop<Box<dyn hal::DynFence>>,
+}
+
 /// Structure describing a logical device. Some members are internally mutable,
 /// stored behind mutexes.
 pub struct Device {
-    raw: Box<dyn hal::DynDevice>,
+    pub(crate) state: ResourceState<DeviceState>,
     pub(crate) adapter: Arc<Adapter>,
     pub(crate) queue: OnceCellOrLock<Weak<Queue>>,
-    pub(crate) zero_buffer: ManuallyDrop<Box<dyn hal::DynBuffer>>,
-    pub(crate) empty_bgl: ManuallyDrop<Box<dyn hal::DynBindGroupLayout>>,
     /// The `label` from the descriptor used to create the resource.
     label: String,
 
@@ -230,7 +235,6 @@ pub struct Device {
     /// [`active_submission_index`]: CommandIndices::active_submission_index
     pub(crate) last_successful_submission_index: hal::AtomicFenceValue,
 
-    pub(crate) fence: ManuallyDrop<Box<dyn hal::DynFence>>,
     pub(crate) snatchable_lock: SnatchLock,
 
     /// Is this device valid? Valid is closely associated with "lose the device",
