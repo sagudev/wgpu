@@ -688,7 +688,7 @@ impl Device {
     /// This is a no-op in release builds.
     pub(crate) fn debug_assert_no_locks(&self) {
         // TODO: we should also prevent all lock ranks except device hub rank for poll
-        #[cfg(debug_assertions)]
+        //#[cfg(debug_assertions)]
         self.snatchable_lock.write();
     }
 
