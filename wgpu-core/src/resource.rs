@@ -632,9 +632,11 @@ impl Buffer {
         size: Option<wgt::BufferAddress>,
         op: BufferMapOperation,
     ) -> Result<SubmissionIndex, BufferAccessError> {
+        self.device.debug_assert_no_locks();
         self.try_map_async(offset, size, op)
             .map_err(|(mut operation, err)| {
                 if let Some(callback) = operation.callback.take() {
+                    self.device.debug_assert_no_locks();
                     callback(Err(err.clone()));
                 }
                 err
@@ -786,6 +788,7 @@ impl Buffer {
             .buffers
             .set_single(self, internal_use);
 
+        self.device.debug_assert_no_locks();
         if let Some(index) = submit_index {
             Ok(index)
         } else {
@@ -935,8 +938,10 @@ impl Buffer {
 
     // Note: This must not be called while holding a lock.
     pub fn unmap(self: &Arc<Self>) -> Result<(), BufferAccessError> {
+        self.device.debug_assert_no_locks();
         if let Some((mut operation, status)) = self.unmap_inner()? {
             if let Some(callback) = operation.callback.take() {
+                self.device.debug_assert_no_locks();
                 callback(status);
             }
         }
@@ -2728,12 +2733,14 @@ impl Blas {
             }),
         };
 
+        device.debug_assert_no_locks();
         let submit_index = if let Some(queue) = device.get_queue() {
             queue.lock_life().prepare_compact(self).unwrap_or(0) // '0' means no wait is necessary
         } else {
             // We can safely unwrap below since we just set the `compacted_state` to `BlasCompactState::Waiting`.
             let (mut callback, status) = self.read_back_compact_size().unwrap();
             if let Some(callback) = callback.take() {
+                device.debug_assert_no_locks();
                 callback(status);
             }
             0

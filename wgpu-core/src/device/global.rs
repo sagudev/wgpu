@@ -1446,6 +1446,7 @@ impl Global {
 
         let (closures, result) = device.poll_and_return_closures(poll_type);
 
+        device.debug_assert_no_locks();
         closures.fire();
 
         result
@@ -1501,6 +1502,9 @@ impl Global {
         let mut closures = UserClosures::default();
         let all_queue_empty = self.poll_all_devices_of_api(force_wait, &mut closures)?;
 
+        for (_id, device) in self.hub.devices.read().iter() {
+            device.debug_assert_no_locks();
+        }
         closures.fire();
 
         Ok(all_queue_empty)

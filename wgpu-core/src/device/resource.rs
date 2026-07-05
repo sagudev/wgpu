@@ -677,6 +677,21 @@ impl Device {
         }
     }
 
+    /// Asserts in debug that no lock is held when this called.
+    ///
+    /// This is useful to call before possible callback execution,
+    /// to ensure that the callback doesn't deadlock/panic
+    /// because of a lock being held.
+    /// This should be used before branching on callback existence,
+    /// to ensure we catch them all (as callback might not exist or might not have used right locks).
+    ///
+    /// This is a no-op in release builds.
+    pub(crate) fn debug_assert_no_locks(&self) {
+        // TODO: we should also prevent all lock ranks except device hub rank for poll
+        #[cfg(debug_assertions)]
+        self.snatchable_lock.write();
+    }
+
     /// Stop tracing and return the trace object.
     ///
     /// This is mostly useful for in-memory traces.
@@ -784,6 +799,7 @@ impl Device {
         poll_type: wgt::PollType<crate::SubmissionIndex>,
     ) -> Result<wgt::PollStatus, WaitIdleError> {
         let (user_closures, result) = self.poll_and_return_closures(poll_type);
+        self.debug_assert_no_locks();
         user_closures.fire();
         result
     }
@@ -5545,6 +5561,8 @@ impl Device {
 
         log::debug!("configuring surface with {config:?}");
 
+        self.debug_assert_no_locks();
+
         let error = 'error: {
             // User callbacks must not be called while we are holding locks.
             let user_callbacks;
@@ -5686,6 +5704,7 @@ impl Device {
                 });
             }
 
+            self.debug_assert_no_locks();
             user_callbacks.fire();
             return None;
         };
