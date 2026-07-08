@@ -369,6 +369,15 @@ jobs:
                 --package wgpu \
                 --all-features --no-deps --document-private-items
 
+      - name: (Windows x86_64) Verify DX12 path without dxgi.lib link
+        if: matrix.name == 'Windows x86_64'
+        shell: bash
+        run: |
+          set -e
+
+          RUSTFLAGS="$RUSTFLAGS -C link-arg=/NODEFAULTLIB:dxgi.lib" \
+            cargo --locked build -p wgpu-hal --features dx12
+
   # We run minimal checks on the MSRV of the `wgpu` crate, ensuring that
   # its dependency tree does not cause issues for servo or other users.
   #
