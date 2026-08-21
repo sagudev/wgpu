@@ -6,7 +6,7 @@ Instead, they communicate with a trusted GPU process that has access to the GPU.
 
 wgpu-core-remote provides a remoting wrapper around [`wgpu_core`] named [`Global`](crate::global::Global),
 that is used in the GPU process to execute commands from the content process.
-All stuff that is needed in the content process is provided in the [`wgpu-core-remote-types`] crate.
+All stuff that is needed in the content process is provided in the [`wgpu_core_remote_types`] crate.
 
 The key part of remoting are [`Id`](crate::id::Id) which are described in [`crate::hub`].
 */

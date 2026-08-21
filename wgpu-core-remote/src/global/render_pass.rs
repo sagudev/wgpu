@@ -42,7 +42,7 @@ impl Global {
     ///
     /// If successful, puts the encoder into the [`Locked`] state.
     ///
-    /// [`Locked`]: crate::command::CommandEncoderStatus::Locked
+    /// [`Locked`]: wgpu_core::command::CommandEncoderStatus::Locked
     pub fn command_encoder_begin_render_pass<'a>(
         &self,
         encoder_id: id::CommandEncoderId,

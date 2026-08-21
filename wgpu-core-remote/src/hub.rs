@@ -75,10 +75,8 @@ creation fails, the id supplied for that resource is marked to indicate
 as much, allowing subsequent operations using that id to be properly
 flagged as errors as well. This is called [Contagious Invalidity].
 
-[`process`]: crate::identity::IdentityManager::process
 [`Id<R>`]: crate::id::Id
 [`Id`]: crate::id::Id
-[wrapped in a mutex]: trait.IdentityHandler.html#impl-IdentityHandler%3CI%3E-for-Mutex%3CIdentityManager%3E
 [WebGPU]: https://www.w3.org/TR/webgpu/
 [`IdentityHub`]: wgpu_core_remote_types::identity::IdentityHub
 [Contagious Invalidity]: https://www.w3.org/TR/webgpu/#invalidity
@@ -145,13 +143,6 @@ pub struct Hub {
 
 impl Hub {
     pub(crate) fn new() -> Self {
-        // Unique lock ranks are required only for registries that are accessed concurrently.
-        // This happens in render pass/bundle encoding, and bind group creation. (Concurrent
-        // access could probably be avoided even in those cases, but acquiring all the locks
-        // at once simplifies the code.)
-        //
-        // The _first_ concurrently-held registry lock uses REGISTRY_STORAGE. Others have
-        // their own named lock rank.
         Self {
             adapters: Registry::new(),
             devices: Registry::new(),
