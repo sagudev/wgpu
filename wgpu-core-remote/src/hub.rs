@@ -109,7 +109,7 @@ use wgpu_core::{
 /// kinds of resource, so to obtain mutable references
 /// to different fields of your [`Hub`] simultaneously, use
 /// destructing:
-/// ```
+/// ```ignore
 /// fn f(hub: &mut Hub) {
 ///     let Hub {
 ///         command_encoders,
