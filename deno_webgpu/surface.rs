@@ -109,7 +109,7 @@ impl GPUCanvasContext {
 
     let err = self.wgpu_surface.configure(&device.wgpu_device, &conf);
 
-    device.error_handler.push_error(err);
+    device.error_handler.push_error(err.err());
 
     self.config.borrow_mut().replace(Configuration {
       device,
@@ -204,7 +204,7 @@ impl GPUCanvasContext {
       .wgpu_surface
       .configure(&config.device.wgpu_device, &config.surface_config);
 
-    config.device.error_handler.push_error(err);
+    config.device.error_handler.push_error(err.err());
   }
 }
 

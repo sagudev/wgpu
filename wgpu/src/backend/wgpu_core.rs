@@ -2737,7 +2737,7 @@ impl dispatch::SurfaceInterface for CoreSurface {
         let device = device.as_core();
 
         let error = self.wgpu_surface.configure(&device.wgpu_device, config);
-        if let Some(e) = error {
+        if let Some(e) = error.err() {
             device
                 .wgpu_device
                 .handle_error_nolabel(e, "Surface::configure");
