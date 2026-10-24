@@ -5,21 +5,25 @@
 use std::cell::RefCell;
 use std::fmt::Display;
 use std::ops::Range;
-use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use std::time::Duration;
 
-use deno_core::futures::channel::oneshot;
+use deno_core::error::to_v8_error;
 use deno_core::op2;
+use deno_core::parking_lot::Mutex;
 use deno_core::v8;
 use deno_core::webidl::WebIdlInterfaceConverter;
 use deno_core::GarbageCollected;
+use deno_core::JsRuntime;
+use deno_core::OpState;
+use deno_core::V8CrossThreadTaskSpawner;
 use deno_core::WebIDL;
 use deno_error::JsErrorBox;
 use wgpu_core::resource::Labeled as _;
 use wgpu_types::MapMode;
 
 use crate::error::GPUGenericError;
+use crate::WeakBufferHM;
 
 #[derive(WebIDL)]
 #[webidl(dictionary)]
@@ -36,9 +40,6 @@ pub(crate) struct GPUBufferDescriptor {
 
 #[derive(Debug, thiserror::Error, deno_error::JsError)]
 pub enum BufferError {
-  #[class(generic)]
-  #[error(transparent)]
-  Canceled(#[from] oneshot::Canceled),
   #[class("DOMExceptionAbortError")]
   #[error("{0}")]
   Aborted(String),
@@ -80,7 +81,9 @@ fn range_overlap<T: std::cmp::PartialOrd>(
 
 pub(crate) enum BufferMapState {
   Unmapped,
-  Pending,
+  Pending {
+    resolver: v8::Global<v8::PromiseResolver>,
+  },
   Mapped {
     mode: MapMode,
     range: Range<u64>,
@@ -92,7 +95,7 @@ impl Display for BufferMapState {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       BufferMapState::Unmapped => write!(f, "unmapped"),
-      BufferMapState::Pending => write!(f, "pending"),
+      BufferMapState::Pending { .. } => write!(f, "pending"),
       BufferMapState::Mapped { .. } => write!(f, "mapped"),
     }
   }
@@ -107,6 +110,9 @@ pub struct GPUBuffer {
   pub map_state: RefCell<BufferMapState>,
   /// None if buffer is not mappable or OOM while creating the buffer
   pub data: RefCell<Option<Vec<u8>>>,
+
+  // Weak reference to the JS object so we can attach a finalizer.
+  pub(crate) weak: std::sync::OnceLock<v8::Weak<v8::Object>>,
 }
 
 impl WebIdlInterfaceConverter for GPUBuffer {
@@ -157,42 +163,123 @@ impl GPUBuffer {
   // In the successful case, the promise should resolve to undefined, but
   // `#[undefined]` does not seem to work here.
   // https://github.com/denoland/deno/issues/29603
-  #[async_method]
-  async fn map_async(
+  #[reentrant]
+  #[global]
+  fn map_async(
     &self,
+    state: &mut OpState,
+    scope: &mut v8::HandleScope,
     #[webidl(options(enforce_range = true))] mode: u32,
     #[webidl(default = 0)] offset: u64,
     #[webidl] size: Option<u64>,
-  ) -> Result<(), BufferError> {
-    {
-      // If this.mapState is not "unmapped"
-      let maybe_error = match *self.map_state.borrow() {
-        BufferMapState::Unmapped => None,
-        BufferMapState::Pending => {
-          Some(wgpu_core::resource::BufferAccessError::MapAlreadyPending)
-        }
-        BufferMapState::Mapped { .. } => {
-          Some(wgpu_core::resource::BufferAccessError::AlreadyMapped)
-        }
-      };
-      if let Some(error) = maybe_error {
-        // Issue the early-reject steps on the Device timeline of this.[[device]].
-        // Generate a validation error.
-        self
-          .wgpu_device
-          .handle_error_nolabel(error.clone(), "GPUBuffer.mapAsync");
-        // Return a promise rejected with OperationError.
-        return Err(error.into());
+  ) -> v8::Global<v8::Promise> {
+    let pending_resolver = v8::PromiseResolver::new(scope).unwrap();
+    let promise = pending_resolver.get_promise(scope);
+
+    // If this.mapState is not "unmapped"
+    let maybe_error = match *self.map_state.borrow() {
+      BufferMapState::Unmapped => None,
+      BufferMapState::Pending { .. } => {
+        Some(wgpu_core::resource::BufferAccessError::MapAlreadyPending)
       }
-      *self.map_state.borrow_mut() = BufferMapState::Pending;
+      BufferMapState::Mapped { .. } => {
+        Some(wgpu_core::resource::BufferAccessError::AlreadyMapped)
+      }
+    };
+    if let Some(error) = maybe_error {
+      // Issue the early-reject steps on the Device timeline of this.[[device]].
+      // Generate a validation error.
+      self
+        .wgpu_device
+        .handle_error_nolabel(error.clone(), "GPUBuffer.mapAsync");
+      // Return a promise rejected with OperationError.
+      let error = BufferError::from(error);
+      let error = JsErrorBox::from_err(error);
+      let local = to_v8_error(scope, &error);
+      pending_resolver.reject(scope, local);
+      return v8::Global::new(scope, promise);
     }
 
-    let (sender, receiver) =
-      oneshot::channel::<wgpu_core::resource::BufferAccessResult>();
+    *self.map_state.borrow_mut() = BufferMapState::Pending {
+      resolver: v8::Global::new(scope, pending_resolver),
+    };
+
+    let wgpu_buffer_id = Arc::as_ptr(&self.wgpu_buffer) as usize;
+
+    let done = Arc::new(AtomicBool::new(false));
 
     {
+      let cross_thread_spawner =
+        state.borrow::<V8CrossThreadTaskSpawner>().clone();
+      let done = Arc::clone(&done);
+      let wake = Arc::new(Mutex::new(
+        move |result: wgpu_core::resource::BufferAccessResult| {
+          cross_thread_spawner.spawn(move |scope| {
+            let state = JsRuntime::op_state_from(scope);
+            let mut state = state.borrow_mut();
+            let weak_buffer = state
+              .borrow_mut::<WeakBufferHM>()
+              .get(&wgpu_buffer_id)
+              .unwrap();
+            let Some(buffer) = weak_buffer.to_local(scope) else {
+              // The buffer has already gone away.
+              return;
+            };
+            let buffer = buffer.cast::<v8::Value>();
+            let buffer =
+              deno_core::cppgc::try_unwrap_cppgc_object::<GPUBuffer>(
+                scope, buffer,
+              )
+              .unwrap();
+
+            let BufferMapState::Pending { ref resolver } =
+              *buffer.map_state.borrow()
+            else {
+              return;
+            };
+
+            let resolver = v8::Local::new(scope, resolver);
+
+            let f = || -> Result<(), BufferError> {
+              result?;
+              let mapping =
+                buffer.wgpu_buffer.get_mapped_range(offset, size)?;
+
+              if mapping.mode() == MapMode::Read {
+                let mut data = buffer.data.borrow_mut();
+                let data = data
+                  .as_mut()
+                  .ok_or(JsErrorBox::range_error("Buffer failed allocating"))?;
+                data[offset as usize..(offset + mapping.len()) as usize]
+                  .copy_from_slice(mapping.read_slice());
+              }
+
+              buffer.map_state.replace(BufferMapState::Mapped {
+                mode: mapping.mode(),
+                range: offset..(offset + mapping.len()),
+                views: vec![],
+              });
+
+              Ok(())
+            };
+
+            match f() {
+              Ok(()) => {
+                let local = v8::undefined(scope);
+                resolver.resolve(scope, local.into());
+              }
+              Err(error) => {
+                let error = JsErrorBox::from_err(error);
+                let local = to_v8_error(scope, &error);
+                resolver.reject(scope, local);
+              }
+            }
+          });
+        },
+      ));
       let callback = Box::new(move |status| {
-        sender.send(status).unwrap();
+        wake.lock()(status);
+        done.store(true, std::sync::atomic::Ordering::SeqCst);
       });
 
       self.wgpu_buffer.map_async(
@@ -203,56 +290,16 @@ impl GPUBuffer {
       );
     }
 
-    // Per specification we should have deferred promise resolution here
-    // (all microtasks should resolve before it).
-    // Yield does not guarantee that other tasks are executed before it,
-    // but it works in practice.
-    // Ideally, we would be polling the device as part of executor
-    // and just resolve promise directly in callback.
-    tokio::task::yield_now().await;
+    let wgpu_device = Arc::clone(&self.wgpu_device);
 
-    let done = Rc::new(RefCell::new(false));
-    let done_ = done.clone();
-    let device_poll_fut = async move {
-      while !*done.borrow() {
-        {
-          self
-            .wgpu_device
-            .poll(wgpu_types::PollType::wait_indefinitely())
-            .unwrap();
-        }
-        tokio::time::sleep(Duration::from_millis(10)).await;
+    tokio::spawn(async move {
+      while !done.load(std::sync::atomic::Ordering::SeqCst) {
+        let _ = wgpu_device.poll(wgpu_types::PollType::Poll);
+        //tokio::time::sleep(Duration::from_millis(10)).await;
       }
-      Ok::<(), BufferError>(())
-    };
-
-    let receiver_fut = async move {
-      receiver.await??;
-      let mut done = done_.borrow_mut();
-      *done = true;
-      Ok::<(), BufferError>(())
-    };
-
-    tokio::try_join!(device_poll_fut, receiver_fut)?;
-
-    let mapping = self.wgpu_buffer.get_mapped_range(offset, size)?;
-
-    if mapping.mode() == MapMode::Read {
-      let mut data = self.data.borrow_mut();
-      let data = data
-        .as_mut()
-        .ok_or(JsErrorBox::range_error("Buffer failed allocating"))?;
-      data[offset as usize..(offset + mapping.len()) as usize]
-        .copy_from_slice(mapping.read_slice());
-    }
-
-    self.map_state.replace(BufferMapState::Mapped {
-      mode: mapping.mode(),
-      range: offset..(offset + mapping.len()),
-      views: vec![],
     });
 
-    Ok(())
+    v8::Global::new(scope, promise)
   }
 
   fn get_mapped_range<'s>(

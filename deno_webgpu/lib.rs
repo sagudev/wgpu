@@ -119,6 +119,7 @@ deno_core::extension!(
 pub(crate) type WeakDeviceHM = HashMap<usize, v8::Weak<v8::Object>>;
 pub(crate) type LostPromiseResolverHM =
   HashMap<usize, v8::Global<v8::PromiseResolver>>;
+pub(crate) type WeakBufferHM = HashMap<usize, v8::Weak<v8::Object>>;
 
 #[op2]
 #[cppgc]
@@ -132,6 +133,7 @@ pub fn op_create_gpu(
 ) -> GPU {
   state.put(WeakDeviceHM::new());
   state.put(LostPromiseResolverHM::new());
+  state.put(WeakBufferHM::new());
   state.put(EventTargetSetup {
     brand: v8::Global::new(scope, webidl_brand),
     set_event_target_data: v8::Global::new(scope, set_event_target_data),

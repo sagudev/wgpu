@@ -3,13 +3,13 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use deno_core::cppgc::{make_cppgc_object, SameObject};
-use deno_core::op2;
-use deno_core::v8;
 use deno_core::webidl::WebIdlInterfaceConverter;
 use deno_core::GarbageCollected;
+use deno_core::{op2, OpState};
+use deno_core::{v8, JsRuntime};
 use deno_error::JsErrorBox;
 use wgpu_core::binding_model::BindingResource;
 use wgpu_core::error::EmptyErrorScopeStack;
@@ -37,6 +37,7 @@ use crate::render_bundle::GPURenderBundleEncoder;
 use crate::render_pipeline::GPURenderPipeline;
 use crate::shader::GPUCompilationInfo;
 use crate::webidl::GPUTextureUsageFlags;
+use crate::WeakBufferHM;
 
 /// External memory associated with device and queue, to encourage V8 to garbage
 /// collect devices promptly. This seems to be particularly important when
@@ -152,11 +153,13 @@ impl GPUDevice {
 
   #[reentrant]
   #[required(1)]
-  #[cppgc]
+  #[global]
   fn create_buffer(
     &self,
+    state: &mut OpState,
+    scope: &mut v8::HandleScope,
     #[webidl] descriptor: super::buffer::GPUBufferDescriptor,
-  ) -> Result<GPUBuffer, JsErrorBox> {
+  ) -> Result<v8::Global<v8::Object>, JsErrorBox> {
     // wgpu-core would also check this, but it needs to be reported via a JS
     // error, not a validation error. (WebGPU specifies this check on the
     // content timeline.)
@@ -187,7 +190,9 @@ impl GPUDevice {
 
     let wgpu_buffer = self.wgpu_device.create_buffer(&wgpu_descriptor);
 
-    Ok(GPUBuffer {
+    let wgpu_buffer_id = Arc::as_ptr(&wgpu_buffer) as usize;
+
+    let buffer = GPUBuffer {
       wgpu_buffer,
       wgpu_device: self.wgpu_device.clone(),
       usage: descriptor.usage,
@@ -218,7 +223,34 @@ impl GPUDevice {
           None
         },
       ),
-    })
+      weak: OnceLock::new(),
+    };
+    let buffer = deno_core::cppgc::make_cppgc_object(scope, buffer);
+    let weak_buffer = v8::Weak::new(scope, buffer);
+    state
+      .borrow_mut::<WeakBufferHM>()
+      .insert(wgpu_buffer_id, weak_buffer);
+    let finalizer = v8::Weak::with_finalizer(
+      scope,
+      buffer,
+      Box::new(move |isolate| {
+        let op_state = JsRuntime::op_state_from(isolate);
+        let mut op_state = op_state.borrow_mut();
+        op_state
+          .borrow_mut::<WeakBufferHM>()
+          .remove(&wgpu_buffer_id);
+      }),
+    );
+
+    {
+      let buffer = buffer.cast::<v8::Value>();
+      let buffer_ref =
+        deno_core::cppgc::try_unwrap_cppgc_object::<GPUBuffer>(scope, buffer)
+          .unwrap();
+      buffer_ref.weak.set(finalizer).unwrap();
+    }
+
+    Ok(v8::Global::new(scope, buffer))
   }
 
   #[reentrant]
